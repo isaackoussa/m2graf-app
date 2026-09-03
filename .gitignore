@@ -1,0 +1,4 @@
+node_modules/
+APP_KEY.txt
+ADMIN_KEY.txt
+.netlify/

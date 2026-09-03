@@ -1,0 +1,10 @@
+{
+  "name": "m2graf-app",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0",
+    "pdf-parse": "^1.1.1",
+    "mammoth": "^1.8.0"
+  }
+}

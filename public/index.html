@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>M2 GRAF — Cahier d'étude</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%2314213D'/%3E%3Ctext x='50' y='64' font-size='40' text-anchor='middle' fill='%232FA98C' font-family='Georgia,serif' font-weight='bold'%3EM2%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#14213D;
+  --navy-soft:#1C2E52;
+  --teal:#2FA98C;
+  --teal-soft:#E4F3EF;
+  --paper:#F6F4EF;
+  --paper-2:#EFEBE1;
+  --ink:#22262B;
+  --muted:#6B7480;
+  --line:#DEDACD;
+  --amber:#B8862E;
+  --red:#B3432B;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.serif{font-family:'Source Serif 4',Georgia,serif;}
+a{color:inherit;}
+button{font-family:inherit;cursor:pointer;}
+
+/* ---------- Layout shell ---------- */
+#app{display:flex;min-height:100vh;}
+
+#sidebar{
+  width:300px;flex-shrink:0;
+  background:var(--navy);
+  color:#EDEFF3;
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+#sidebar-head{
+  padding:28px 24px 18px;
+  border-bottom:1px solid rgba(255,255,255,0.12);
+}
+#sidebar-head .kicker{font-size:12px;letter-spacing:.04em;color:#9FB0C8;margin-bottom:6px;}
+#sidebar-head h1{font-size:24px;margin:0 0 4px;color:#fff;line-height:1.15;}
+#sidebar-head .sub{font-size:13px;color:#9FB0C8;}
+
+#progress-box{padding:16px 24px;border-bottom:1px solid rgba(255,255,255,0.12);}
+#progress-box .label{font-size:12px;color:#9FB0C8;margin-bottom:8px;display:flex;justify-content:space-between;}
+#progress-track{height:6px;border-radius:4px;background:rgba(255,255,255,0.14);overflow:hidden;}
+#progress-fill{height:100%;background:var(--teal);border-radius:4px;transition:width .4s ease;}
+
+#nav-search{padding:14px 24px 6px;}
+#nav-search input{
+  width:100%;padding:9px 12px;border-radius:7px;border:1px solid rgba(255,255,255,0.18);
+  background:rgba(255,255,255,0.06);color:#fff;font-size:13px;
+}
+#nav-search input::placeholder{color:#8593A8;}
+
+#dictionnaire-link{
+  margin:2px 24px 10px;padding:10px 12px;border-radius:8px;
+  background:rgba(255,255,255,0.06);color:#D6DCE6;font-size:13px;font-weight:600;
+  cursor:pointer;border:1px solid rgba(255,255,255,0.1);
+}
+#dictionnaire-link:hover{background:rgba(255,255,255,0.1);}
+#dictionnaire-link.active{background:var(--teal);color:var(--navy);border-color:var(--teal);}
+
+#documents-link{
+  margin:2px 24px 14px;padding:10px 12px;border-radius:8px;
+  background:rgba(255,255,255,0.06);color:#D6DCE6;font-size:13px;font-weight:600;
+  cursor:pointer;border:1px solid rgba(255,255,255,0.1);
+}
+#documents-link:hover{background:rgba(255,255,255,0.1);}
+#documents-link.active{background:var(--teal);color:var(--navy);border-color:var(--teal);}
+
+
+nav#matiere-list{padding:6px 12px 24px;flex:1;}
+.sem-label{
+  font-size:11px;letter-spacing:.06em;color:#8593A8;
+  padding:16px 12px 6px;text-transform:uppercase;
+}
+.mat-item{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:9px 12px;border-radius:8px;cursor:pointer;
+  font-size:13.5px;line-height:1.3;color:#D6DCE6;
+}
+.mat-item:hover{background:rgba(255,255,255,0.06);}
+.mat-item.active{background:var(--teal);color:var(--navy);font-weight:600;}
+.mat-item .dot{
+  width:16px;height:16px;border-radius:50%;flex-shrink:0;margin-top:1px;
+  border:1.5px solid #5A6C8A;display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:transparent;
+}
+.mat-item.done .dot{background:var(--teal);border-color:var(--teal);color:var(--navy);}
+.mat-item.active .dot{border-color:var(--navy);}
+.mat-item.active.done .dot{background:var(--navy);color:var(--teal);}
+.mat-item .num{font-variant-numeric:tabular-nums;color:#7C8AA0;font-size:12px;}
+.mat-item.active .num{color:var(--navy);}
+
+/* ---------- Main ---------- */
+#main{flex:1;min-width:0;}
+#topbar{
+  display:none;
+  align-items:center;justify-content:space-between;
+  padding:14px 20px;background:var(--navy);color:#fff;position:sticky;top:0;z-index:20;
+}
+#topbar button{background:none;border:none;color:#fff;font-size:22px;}
+
+.view{max-width:760px;margin:0 auto;padding:56px 48px 100px;}
+@media (max-width:640px){.view{padding:28px 20px 80px;}}
+
+/* Home */
+.home-hero{margin-bottom:40px;}
+.home-hero .kicker{color:var(--teal);font-size:13px;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;}
+.home-hero h2{font-size:34px;margin:0 0 14px;color:var(--navy);}
+.home-hero p{color:var(--muted);font-size:16px;line-height:1.6;max-width:56ch;}
+
+.stat-row{display:flex;gap:14px;margin:28px 0 40px;flex-wrap:wrap;}
+.stat-card{
+  background:#fff;border:1px solid var(--line);border-radius:10px;
+  padding:16px 20px;min-width:130px;flex:1;
+}
+.stat-card .n{font-family:'Source Serif 4',serif;font-size:28px;color:var(--navy);}
+.stat-card .l{font-size:12.5px;color:var(--muted);margin-top:2px;}
+
+.sem-block{margin-bottom:32px;}
+.sem-block h3{font-size:14px;letter-spacing:.05em;text-transform:uppercase;color:var(--amber);border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:12px;}
+.home-card{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 16px;border:1px solid var(--line);border-radius:10px;
+  background:#fff;margin-bottom:8px;cursor:pointer;
+  transition:border-color .15s;
+}
+.home-card:hover{border-color:var(--teal);}
+.home-card .idx{
+  width:30px;height:30px;border-radius:50%;background:var(--paper-2);
+  display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--navy);flex-shrink:0;
+  font-family:'Source Serif 4',serif;
+}
+.home-card.done .idx{background:var(--teal);color:#fff;}
+.home-card .body{flex:1;min-width:0;}
+.home-card .t{font-weight:600;font-size:14.5px;}
+.home-card .m{font-size:12px;color:var(--muted);margin-top:2px;}
+
+
+/* Matiere view */
+.mat-ue{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.mat-title-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:6px;}
+.mat-title-row h2{font-size:30px;margin:0;color:var(--navy);}
+.btn-mark{
+  background:#fff;border:1px solid var(--teal);color:var(--teal);
+  padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;white-space:nowrap;
+}
+.btn-mark:hover{background:var(--teal-soft);}
+.btn-mark.is-read{background:var(--teal);color:#fff;}
+
+
+
+
+.tabs{display:flex;gap:4px;margin:24px 0 28px;border-bottom:1px solid var(--line);}
+.tab-btn{
+  background:none;border:none;padding:10px 4px;margin-right:22px;
+  font-size:14.5px;color:var(--muted);border-bottom:2px solid transparent;font-weight:500;
+}
+.tab-btn.active{color:var(--navy);border-color:var(--teal);}
+
+.objectifs{background:var(--teal-soft);border-radius:10px;padding:18px 20px;margin-bottom:8px;}
+.objectifs h4{margin:0 0 10px;font-size:13px;letter-spacing:.03em;text-transform:uppercase;color:#1D7A63;}
+.objectifs ul{margin:0;padding-left:18px;}
+.objectifs li{margin-bottom:6px;font-size:14px;line-height:1.5;}
+
+.section-block{margin-top:30px;}
+.section-block h3{font-size:19px;color:var(--navy);margin:0 0 10px;}
+.section-block p{font-size:15.5px;line-height:1.7;color:#333;text-align:justify;margin:0 0 12px;}
+.section-block ul{margin:0 0 12px;padding-left:20px;}
+.section-block li{font-size:15px;line-height:1.6;margin-bottom:7px;color:#333;}
+.formule{
+  font-family:'Source Serif 4',serif;font-style:italic;
+  background:var(--paper-2);border-left:3px solid var(--teal);
+  padding:14px 18px;margin:14px 0;border-radius:0 8px 8px 0;
+  font-size:16px;color:var(--navy);overflow-x:auto;white-space:nowrap;
+}
+
+.exo-intro{color:var(--muted);font-size:14px;margin-bottom:20px;}
+.exo-card{border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:18px;background:#fff;}
+.exo-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.exo-num{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--amber);font-weight:700;}
+.exo-title{font-family:'Source Serif 4',serif;font-size:18px;color:var(--navy);}
+.exo-enonce{font-size:15px;line-height:1.65;color:#333;margin:0 0 16px;}
+.exo-toggle{font-size:13px;}
+.exo-correction{margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);}
+.exo-etapes h5,.exo-solution h5{margin:0 0 8px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}
+.exo-etapes ol{margin:0 0 16px;padding-left:20px;}
+.exo-etapes li{font-size:14px;line-height:1.6;margin-bottom:6px;color:#444;font-family:'Source Serif 4',serif;}
+.exo-solution{background:var(--teal-soft);border-radius:8px;padding:14px 16px;}
+.exo-solution p{margin:0;font-size:14.5px;line-height:1.6;color:#1D7A63;font-weight:500;}
+
+.gen-box{border:1.5px dashed var(--teal);border-radius:12px;padding:22px;margin:28px 0;background:#FBFEFC;}
+.gen-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.gen-badge{background:var(--teal);color:#fff;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 10px;border-radius:12px;}
+.gen-title{font-family:'Source Serif 4',serif;font-size:17px;color:var(--navy);}
+.gen-desc{font-size:13.5px;color:var(--muted);margin:0 0 16px;}
+.gen-generated{border-color:var(--teal);}
+
+.code-switch{display:flex;gap:6px;margin-bottom:16px;}
+.code-lang-btn{
+  background:#fff;border:1px solid var(--line);padding:7px 16px;border-radius:7px;
+  font-size:13px;font-weight:600;color:var(--muted);
+}
+.code-lang-btn.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.code-block pre{
+  background:#1B2436;color:#E4E8F1;border-radius:10px;padding:20px 22px;
+  overflow-x:auto;margin:0 0 24px;font-size:13px;line-height:1.6;
+}
+.code-block code{font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;white-space:pre;}
+
+.mat-footer-nav{display:flex;justify-content:space-between;margin-top:52px;padding-top:20px;border-top:1px solid var(--line);}
+.mat-footer-nav button{
+  background:none;border:1px solid var(--line);padding:10px 16px;border-radius:8px;font-size:13.5px;color:var(--navy);
+}
+.mat-footer-nav button:hover{border-color:var(--teal);}
+.mat-footer-nav button:disabled{opacity:.3;cursor:default;}
+
+/* Quiz */
+#quiz-intro{text-align:center;padding:40px 20px;}
+#quiz-intro .big-icon{font-size:40px;margin-bottom:12px;}
+#quiz-intro p{color:var(--muted);margin-bottom:22px;}
+.btn-primary{
+  background:var(--navy);color:#fff;border:none;padding:12px 26px;border-radius:8px;
+  font-size:14.5px;font-weight:600;
+}
+.btn-primary:hover{background:var(--navy-soft);}
+.btn-ghost{background:none;border:1px solid var(--line);padding:11px 24px;border-radius:8px;font-size:14px;color:var(--navy);}
+
+.q-progress{font-size:12.5px;color:var(--muted);margin-bottom:8px;}
+.q-track{height:5px;background:var(--paper-2);border-radius:3px;margin-bottom:26px;overflow:hidden;}
+.q-track-fill{height:100%;background:var(--teal);transition:width .3s;}
+.q-text{font-size:19px;color:var(--navy);margin-bottom:20px;line-height:1.4;font-family:'Source Serif 4',serif;}
+.q-opt{
+  display:block;width:100%;text-align:left;padding:13px 16px;margin-bottom:10px;
+  border:1px solid var(--line);border-radius:9px;background:#fff;font-size:14.5px;color:var(--ink);
+}
+.q-opt:hover{border-color:var(--teal);}
+.q-opt.correct{background:var(--teal-soft);border-color:var(--teal);color:#1D7A63;font-weight:600;}
+.q-opt.wrong{background:#FBEAE5;border-color:var(--red);color:var(--red);font-weight:600;}
+.q-opt[disabled]{cursor:default;}
+.q-explain{
+  font-size:13.5px;color:var(--muted);background:var(--paper-2);border-radius:8px;padding:12px 16px;margin-top:6px;line-height:1.5;
+}
+.q-next{margin-top:20px;text-align:right;}
+.quiz-result{text-align:center;padding:30px 10px;}
+.quiz-result .score{font-family:'Source Serif 4',serif;font-size:52px;color:var(--navy);}
+.quiz-result .score span{font-size:22px;color:var(--muted);}
+.quiz-result .msg{color:var(--muted);margin:8px 0 26px;}
+
+/* Search results view */
+.search-hit{padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer;}
+.search-hit .h-ue{font-size:11px;color:var(--muted);text-transform:uppercase;}
+.search-hit .h-t{font-weight:600;font-size:15px;}
+.search-hit .h-snip{font-size:13px;color:var(--muted);margin-top:2px;}
+mark{background:#FDE9B8;padding:0 1px;border-radius:2px;}
+
+/* Dictionnaire */
+#dict-search{
+  width:100%;padding:12px 16px;border-radius:9px;border:1px solid var(--line);
+  font-size:14.5px;margin-bottom:28px;background:#fff;color:var(--ink);
+}
+.dict-letter{
+  font-family:'Source Serif 4',serif;font-size:13px;color:var(--teal);
+  letter-spacing:.08em;margin:26px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px;
+}
+.dict-letter:first-child{margin-top:0;}
+.dict-entry{margin-bottom:18px;}
+.dict-term{font-family:'Source Serif 4',serif;font-size:17px;color:var(--navy);font-weight:600;margin-bottom:4px;}
+.dict-def{font-size:14.5px;line-height:1.6;color:#333;margin-bottom:8px;}
+.dict-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.dict-chip{
+  font-size:11.5px;background:var(--teal-soft);color:#1D7A63;padding:3px 10px;
+  border-radius:12px;cursor:pointer;font-weight:600;
+}
+.dict-chip:hover{background:var(--teal);color:#fff;}
+
+/* Mes documents */
+#doc-upload-box{
+  border:1.5px dashed var(--teal);border-radius:12px;padding:24px;margin-bottom:32px;background:#FBFEFC;
+}
+#doc-upload-box select, #doc-upload-box input[type="file"]{
+  width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:8px;
+  font-size:14px;margin-bottom:14px;font-family:'Inter',sans-serif;background:#fff;
+}
+#doc-upload-box .btn-primary{width:100%;}
+#doc-upload-msg{margin-top:12px;font-size:13px;}
+#doc-upload-msg.err{color:var(--red);}
+#doc-upload-msg.ok{color:#1D7A63;}
+.doc-summary{
+  background:var(--teal-soft);border-radius:12px;padding:24px;margin-top:20px;
+}
+.doc-summary h2, .doc-summary h3{color:var(--navy);font-family:'Source Serif 4',serif;}
+.doc-summary h2{font-size:19px;margin:16px 0 8px;}
+.doc-summary h2:first-child{margin-top:0;}
+.doc-summary ul{margin:0 0 12px;padding-left:20px;}
+.doc-summary li{font-size:14.5px;line-height:1.6;margin-bottom:5px;}
+.doc-summary p{font-size:14.5px;line-height:1.6;margin:0 0 10px;}
+
+.doc-history-item{
+  border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin-bottom:10px;
+  background:#fff;cursor:pointer;
+}
+.doc-history-item:hover{border-color:var(--teal);}
+.doc-history-item .dh-title{font-weight:600;font-size:14.5px;color:var(--navy);}
+.doc-history-item .dh-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+
+
+@media(max-width:900px){
+  #sidebar{position:fixed;left:0;top:0;bottom:0;z-index:40;transform:translateX(-100%);transition:transform .25s ease;width:82vw;max-width:320px;}
+  #sidebar.open{transform:translateX(0);}
+  #topbar{display:flex;}
+  #overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:30;}
+  #overlay.show{display:block;}
+}
+
+/* Gate (écran de connexion e-mail) */
+#gate{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:var(--navy);padding:20px;
+}
+#gate-card{
+  background:#fff;border-radius:16px;padding:44px 36px;width:100%;max-width:380px;text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,0.25);
+}
+#gate-card .kicker{color:var(--teal);font-size:12px;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;}
+#gate-card h1{font-size:28px;margin:0 0 14px;color:var(--navy);}
+.gate-sub{color:var(--muted);font-size:14px;line-height:1.5;margin:0 0 24px;}
+#gate-form-email input, #gate-form-code input{
+  width:100%;padding:13px 16px;border:1px solid var(--line);border-radius:9px;
+  font-size:14.5px;margin-bottom:14px;font-family:'Inter',sans-serif;
+}
+#gate-code{text-align:center;letter-spacing:6px;font-size:20px;font-weight:600;}
+#gate-form-email .btn-primary, #gate-form-code .btn-primary{width:100%;}
+.btn-link{
+  display:block;width:100%;background:none;border:none;color:var(--muted);
+  font-size:12.5px;padding:10px 0 0;cursor:pointer;text-decoration:underline;
+}
+.btn-link:hover{color:var(--teal);}
+#gate-msg{margin-top:14px;font-size:13px;min-height:18px;}
+#gate-msg.err{color:var(--red);}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div id="gate-card">
+    <div class="kicker">IUA · Master 2 GRAF</div>
+    <h1>M2 GRAF</h1>
+
+    <div id="gate-step-email">
+      <p class="gate-sub">Entre ton adresse e-mail pour recevoir un code de connexion.</p>
+      <form id="gate-form-email">
+        <input type="email" id="gate-email" placeholder="prenom.nom@exemple.com" required autocomplete="email">
+        <button type="submit" id="gate-submit-email" class="btn-primary">Recevoir mon code</button>
+      </form>
+    </div>
+
+    <div id="gate-step-code" style="display:none;">
+      <p class="gate-sub">Un code à 6 chiffres a été envoyé à <strong id="gate-email-display"></strong>.</p>
+      <form id="gate-form-code">
+        <input type="text" id="gate-code" placeholder="123456" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code">
+        <button type="submit" id="gate-submit-code" class="btn-primary">Vérifier le code</button>
+      </form>
+      <button id="gate-resend" class="btn-link">Renvoyer le code</button>
+      <button id="gate-change-email" class="btn-link">Changer d'adresse e-mail</button>
+    </div>
+
+    <div id="gate-msg"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+  <aside id="sidebar">
+    <div id="sidebar-head">
+      <div class="kicker">IUA · Master 2</div>
+      <h1>M2 GRAF</h1>
+      <div class="sub">Gestion des Risques en Assurance et Finance</div>
+    </div>
+    <div id="progress-box">
+      <div class="label"><span>Progression</span><span id="progress-text">0 / 14</span></div>
+      <div id="progress-track"><div id="progress-fill" style="width:0%"></div></div>
+    </div>
+    <div id="nav-search">
+      <input type="text" id="search-input" placeholder="Rechercher une notion…">
+    </div>
+    <div id="dictionnaire-link">📖 Dictionnaire des notions clés</div>
+    <div id="documents-link">📄 Mes documents</div>
+    <nav id="matiere-list"></nav>
+  </aside>
+  <div id="overlay"></div>
+
+  <main id="main">
+    <div id="topbar">
+      <button id="menu-btn" aria-label="Menu">☰</button>
+      <strong style="font-family:'Source Serif 4',serif;">M2 GRAF</strong>
+      <span style="width:22px;"></span>
+    </div>
+    <div id="view-root" class="view"></div>
+  </main>
+</div>
+
+<script>
+// Générateurs paramétrés d'exercices et de quiz numériques.
+// Un générateur par matière (index aligné sur content.js), quand la matière s'y prête.
+// Chaque générateur retourne { enonce, etapes:[...], solution, reponseNum } pour l'exercice,
+// et { q, options:[...], a, exp } pour le quiz (options mélangées côté app).
+// rnd(min,max) et rndf(min,max,dec) sont fournies par l'app (nombres aléatoires reproductibles par tirage).
+
+const GENERATORS = {
+  // 0 Séries temporelles — lecture d'un test ADF
+  0: {
+    exo(rnd, rndf) {
+      const stat = rndf(-3.5, -1.0, 2);
+      const crit = rndf(-3.2, -2.6, 2);
+      const stationnaire = stat < crit;
+      return {
+        enonce: `Un test de Dickey-Fuller augmenté donne une statistique de ${stat} pour une valeur critique à 5% de ${crit}. La série est-elle stationnaire ?`,
+        etapes: [
+          "Règle : on rejette H0 (non-stationnarité) si la statistique est INFÉRIEURE (plus négative) que la valeur critique.",
+          `Ici, ${stat} ${stationnaire ? "<" : ">"} ${crit}.`,
+        ],
+        solution: stationnaire
+          ? `${stat} < ${crit} : on rejette H0. La série est stationnaire, on peut directement ajuster un ARMA.`
+          : `${stat} > ${crit} : on ne rejette pas H0. La série est non stationnaire, il faut la différencier (d=1) avant d'ajuster un ARIMA.`,
+      };
+    },
+    quiz(rnd, rndf) {
+      const stat = rndf(-3.5, -1.0, 2);
+      const crit = rndf(-3.2, -2.6, 2);
+      const stationnaire = stat < crit;
+      return {
+        q: `Statistique ADF = ${stat}, valeur critique à 5% = ${crit}. Que conclure ?`,
+        options: [
+          "La série est stationnaire, on rejette H0",
+          "La série est non stationnaire, on ne rejette pas H0",
+          "Le test est non concluant dans tous les cas",
+          "Il faut ajouter une composante saisonnière"
+        ],
+        a: stationnaire ? 0 : 1,
+        exp: stationnaire
+          ? `${stat} < ${crit} : la statistique est plus négative que la valeur critique, on rejette H0.`
+          : `${stat} > ${crit} : la statistique n'est pas assez négative, on ne rejette pas H0 (non-stationnarité).`,
+      };
+    },
+    code(rnd, rndf) {
+      const stat = rndf(-3.5, -1.0, 2);
+      const crit = rndf(-3.2, -2.6, 2);
+      return {
+        python: `import numpy as np\nfrom statsmodels.tsa.stattools import adfuller\n\n# Exemple généré : statistique simulée = ${stat}, seuil = ${crit}\nadf_stat, pvalue = ${stat}, None\nprint(f"ADF = {adf_stat} vs seuil 5% = ${crit}")\nprint("Stationnaire" if adf_stat < ${crit} else "Non stationnaire -> différencier (d=1)")`,
+        r: `# Exemple généré : statistique simulée = ${stat}, seuil = ${crit}\nadf_stat <- ${stat}\nseuil <- ${crit}\ncat(if (adf_stat < seuil) "Stationnaire" else "Non stationnaire -> différencier (d=1)", "\\n")`,
+      };
+    },
+  },
+
+  // 1 Statistique des valeurs extrêmes — VaR par GPD
+  1: {
+    exo(rnd, rndf) {
+      const u = rnd(50, 150) * 1000;
+      const xi = rndf(0.15, 0.45, 2);
+      const sigma = rnd(30, 70) * 1000;
+      const n = rnd(500, 2000);
+      const Nu = rnd(20, 60);
+      const p = 0.995;
+      const ratio = (n / Nu) * (1 - p);
+      const facteur = Math.pow(ratio, -xi);
+      const varP = u + (sigma / xi) * (facteur - 1);
+      return {
+        enonce: `On ajuste une GPD au-delà du seuil u = ${u.toLocaleString("fr-FR")} FCFA, avec ξ = ${xi} et σ = ${sigma.toLocaleString("fr-FR")}. Sur n = ${n} sinistres, Nu = ${Nu} dépassent le seuil. Calculer la VaR à 99,5%.`,
+        etapes: [
+          `n/Nu × (1-p) = (${n}/${Nu}) × 0,005 = ${ratio.toFixed(4)}`,
+          `${ratio.toFixed(4)}^(-${xi}) ≈ ${facteur.toFixed(3)}`,
+          `σ/ξ = ${sigma.toLocaleString("fr-FR")}/${xi} ≈ ${(sigma/xi).toFixed(0)}`,
+        ],
+        solution: `VaR99,5% ≈ ${Math.round(varP).toLocaleString("fr-FR")} FCFA.`,
+      };
+    },
+    quiz(rnd, rndf) {
+      const xi = rndf(-0.3, 0.5, 2);
+      let domaine, correct;
+      if (xi > 0.02) { domaine = "Fréchet (queue lourde)"; correct = 0; }
+      else if (xi < -0.02) { domaine = "Weibull (support borné)"; correct = 2; }
+      else { domaine = "Gumbel (décroissance exponentielle)"; correct = 1; }
+      return {
+        q: `Pour ξ̂ = ${xi}, dans quel domaine d'attraction se situe la distribution ?`,
+        options: ["Domaine de Fréchet", "Domaine de Gumbel", "Domaine de Weibull", "Aucun domaine standard"],
+        a: correct,
+        exp: `ξ = ${xi} ${xi > 0.02 ? "> 0" : xi < -0.02 ? "< 0" : "≈ 0"} → domaine de ${domaine}.`,
+      };
+    },
+    code(rnd, rndf) {
+      const u = rnd(50, 150) * 1000;
+      const xi = rndf(0.15, 0.45, 2);
+      const sigma = rnd(30, 70) * 1000;
+      return {
+        python: `import numpy as np\n\nu, xi, sigma = ${u}, ${xi}, ${sigma}\nn, Nu, p = 1000, 40, 0.995\nvar_p = u + (sigma/xi) * (((n/Nu)*(1-p))**(-xi) - 1)\nprint(f"VaR 99.5% = {var_p:,.0f} FCFA")`,
+        r: `u <- ${u}; xi <- ${xi}; sigma <- ${sigma}\nn <- 1000; Nu <- 40; p <- 0.995\nvar_p <- u + (sigma/xi) * (((n/Nu)*(1-p))^(-xi) - 1)\ncat("VaR 99.5% =", round(var_p), "FCFA\\n")`,
+      };
+    },
+  },
+
+  // 2 Modélisation des actifs financiers — Black-Scholes
+  2: {
+    exo(rnd, rndf) {
+      const S0 = rnd(80, 130);
+      const K = rnd(80, 130);
+      const r = rndf(0.02, 0.08, 3);
+      const sigma = rndf(0.15, 0.35, 2);
+      const T = rnd(1, 2);
+      const d1 = (Math.log(S0/K) + (r + sigma*sigma/2)*T) / (sigma*Math.sqrt(T));
+      const d2 = d1 - sigma*Math.sqrt(T);
+      const Nd1 = normCdf(d1), Nd2 = normCdf(d2);
+      const C0 = S0*Nd1 - K*Math.exp(-r*T)*Nd2;
+      return {
+        enonce: `Calculer le prix d'un call européen : S0=${S0}, K=${K}, r=${(r*100).toFixed(1)}%, σ=${(sigma*100).toFixed(0)}%, T=${T} an(s).`,
+        etapes: [
+          `d1 = [ln(${S0}/${K}) + (${(r*100).toFixed(1)}%+${(sigma*100).toFixed(0)}%²/2)×${T}] / (${(sigma*100).toFixed(0)}%×√${T}) ≈ ${d1.toFixed(3)}`,
+          `d2 = d1 - σ√T ≈ ${d2.toFixed(3)}`,
+          `N(d1) ≈ ${Nd1.toFixed(4)}, N(d2) ≈ ${Nd2.toFixed(4)}`,
+        ],
+        solution: `C0 = S0·N(d1) - K·e^(-rT)·N(d2) ≈ ${C0.toFixed(2)}`,
+      };
+    },
+    quiz(rnd, rndf) {
+      const sigmaUp = Math.random() < 0.5;
+      return {
+        q: `Toutes choses égales par ailleurs, si la volatilité σ augmente, le prix d'un call européen (Black-Scholes) :`,
+        options: ["Augmente toujours", "Diminue toujours", "Reste inchangé", "Devient négatif"],
+        a: 0,
+        exp: "Le call est une option à Vega positif : sa valeur croît avec la volatilité, quelle que soit la direction du mouvement du sous-jacent.",
+      };
+    },
+    code(rnd, rndf) {
+      const S0 = rnd(80, 130);
+      const K = rnd(80, 130);
+      const r = rndf(0.02, 0.08, 3);
+      const sigma = rndf(0.15, 0.35, 2);
+      return {
+        python: `import numpy as np\nfrom scipy.stats import norm\n\nS0, K, r, sigma, T = ${S0}, ${K}, ${r}, ${sigma}, 1\nd1 = (np.log(S0/K) + (r + sigma**2/2)*T) / (sigma*np.sqrt(T))\nd2 = d1 - sigma*np.sqrt(T)\nprix = S0*norm.cdf(d1) - K*np.exp(-r*T)*norm.cdf(d2)\nprint(f"Prix du call = {prix:.2f}")`,
+        r: `S0 <- ${S0}; K <- ${K}; r <- ${r}; sigma <- ${sigma}; T <- 1\nd1 <- (log(S0/K) + (r + sigma^2/2)*T) / (sigma*sqrt(T))\nd2 <- d1 - sigma*sqrt(T)\nprix <- S0*pnorm(d1) - K*exp(-r*T)*pnorm(d2)\ncat("Prix du call =", round(prix,2), "\\n")`,
+      };
+    },
+  },
+
+  // 3 Modélisation des risques financiers — VaR paramétrique
+  3: {
+    exo(rnd, rndf) {
+      const valeur = rnd(500, 2000) * 1_000_000;
+      const vol = rndf(0.8, 2.5, 2);
+      const conf = Math.random() < 0.5 ? 99 : 95;
+      const z = conf === 99 ? 2.33 : 1.645;
+      const varCalc = valeur * (vol/100) * z;
+      return {
+        enonce: `Portefeuille de ${valeur.toLocaleString("fr-FR")} FCFA, volatilité journalière ${vol}%. Calculer la VaR à 1 jour, confiance ${conf}% (z=${z}).`,
+        etapes: [
+          `VaR = Valeur × volatilité × z`,
+          `= ${valeur.toLocaleString("fr-FR")} × ${vol}% × ${z}`,
+        ],
+        solution: `VaR${conf}% (1j) ≈ ${Math.round(varCalc).toLocaleString("fr-FR")} FCFA.`,
+      };
+    },
+    quiz(rnd, rndf) {
+      const attendu = rndf(0.5, 2, 1);
+      const observe = rnd(Math.ceil(attendu*3), Math.ceil(attendu*3)+8);
+      return {
+        q: `Sur 250 jours à 99% de confiance, on attend environ ${(2.5).toFixed(1)} dépassements. On en observe ${observe}. Que conclure ?`,
+        options: [
+          "Le modèle sous-estime probablement le risque (trop de dépassements)",
+          "Le modèle est parfaitement calibré",
+          "Il faut augmenter le niveau de confiance à 99,9%",
+          "Le nombre de dépassements est sans importance"
+        ],
+        a: observe > 4 ? 0 : 1,
+        exp: observe > 4
+          ? `${observe} dépassements observés contre ${(2.5).toFixed(1)} attendus : écart important, à confirmer par un test de Kupiec.`
+          : `${observe} dépassements est proche de l'attendu (${(2.5).toFixed(1)}) : pas d'alerte évidente.`,
+      };
+    },
+    code(rnd, rndf) {
+      const valeur = rnd(500, 2000) * 1_000_000;
+      const vol = rndf(0.8, 2.5, 2);
+      return {
+        python: `valeur, vol, z99 = ${valeur}, ${vol}/100, 2.33\nvar_param = valeur * vol * z99\nprint(f"VaR 99% (1j) = {var_param:,.0f} FCFA")`,
+        r: `valeur <- ${valeur}; vol <- ${vol}/100; z99 <- 2.33\nvar_param <- valeur * vol * z99\ncat("VaR 99% (1j) =", format(var_param, big.mark=" "), "FCFA\\n")`,
+      };
+    },
+  },
+
+  // 4 Gestion multiple des risques — agrégation
+  4: {
+    exo(rnd, rndf) {
+      const s1 = rnd(30, 80);
+      const s2 = rnd(20, 60);
+      const corr = rndf(0.1, 0.5, 2);
+      const agrege = Math.sqrt(s1*s1 + s2*s2 + 2*corr*s1*s2);
+      const benefice = (s1+s2) - agrege;
+      return {
+        enonce: `SCR module 1 = ${s1}, SCR module 2 = ${s2}, corrélation = ${corr}. Calculer le capital agrégé et le bénéfice de diversification.`,
+        etapes: [
+          `SCR_agrégé = √(${s1}² + ${s2}² + 2×${corr}×${s1}×${s2})`,
+          `= √(${(s1*s1).toFixed(0)} + ${(s2*s2).toFixed(0)} + ${(2*corr*s1*s2).toFixed(1)})`,
+        ],
+        solution: `SCR agrégé ≈ ${agrege.toFixed(1)}, bénéfice de diversification ≈ ${benefice.toFixed(1)} (soit ${(benefice/(s1+s2)*100).toFixed(0)}% de la somme simple).`,
+      };
+    },
+    quiz(rnd, rndf) {
+      const corr = rndf(0, 1, 2);
+      return {
+        q: `Une corrélation réglementaire de ${corr} entre deux modules de risque, comparée à une corrélation de 1, produit un bénéfice de diversification :`,
+        options: ["Plus faible (proche de 0 quand corr→1)", "Plus élevé", "Identique quelle que soit la corrélation", "Négatif"],
+        a: 0,
+        exp: "Plus la corrélation entre modules est proche de 1, plus l'agrégation se rapproche d'une simple somme : le bénéfice de diversification diminue.",
+      };
+    },
+    code(rnd, rndf) {
+      const s1 = rnd(30, 80);
+      const s2 = rnd(20, 60);
+      const corr = rndf(0.1, 0.5, 2);
+      return {
+        python: `import numpy as np\ns1, s2, corr = ${s1}, ${s2}, ${corr}\nagrege = np.sqrt(s1**2 + s2**2 + 2*corr*s1*s2)\nprint(f"SCR agrégé = {agrege:.1f}, bénéfice = {(s1+s2)-agrege:.1f}")`,
+        r: `s1 <- ${s1}; s2 <- ${s2}; corr <- ${corr}\nagrege <- sqrt(s1^2 + s2^2 + 2*corr*s1*s2)\ncat("SCR agrégé =", round(agrege,1), " bénéfice =", round((s1+s2)-agrege,1), "\\n")`,
+      };
+    },
+  },
+
+  // 5 Allocation du capital économique — RAROC
+  5: {
+    exo(rnd, rndf) {
+      const resultat = rnd(8, 25);
+      const pertes = rnd(1, 6);
+      const capital = rnd(30, 80);
+      const hurdle = rndf(0.10, 0.20, 2);
+      const raroc = (resultat - pertes) / capital;
+      const creeValeur = raroc > hurdle;
+      return {
+        enonce: `Résultat attendu = ${resultat}, pertes attendues = ${pertes}, capital alloué = ${capital}, hurdle rate = ${(hurdle*100).toFixed(0)}%. Cette activité crée-t-elle de la valeur ?`,
+        etapes: [
+          `RAROC = (${resultat} - ${pertes}) / ${capital}`,
+        ],
+        solution: `RAROC = ${(raroc*100).toFixed(1)}% ${creeValeur ? ">" : "<"} hurdle rate (${(hurdle*100).toFixed(0)}%) → l'activité ${creeValeur ? "crée" : "détruit"} de la valeur.`,
+      };
+    },
+    quiz(rnd, rndf) {
+      const raroc = rndf(0.08, 0.30, 2);
+      const hurdle = rndf(0.12, 0.18, 2);
+      return {
+        q: `RAROC = ${(raroc*100).toFixed(1)}%, hurdle rate = ${(hurdle*100).toFixed(1)}%. L'activité crée-t-elle de la valeur ?`,
+        options: ["Oui, RAROC > hurdle rate", "Non, RAROC < hurdle rate", "Impossible à dire sans le SCR", "Oui, toujours"],
+        a: raroc > hurdle ? 0 : 1,
+        exp: `${(raroc*100).toFixed(1)}% ${raroc>hurdle?">":"<"} ${(hurdle*100).toFixed(1)}% : ${raroc>hurdle?"création":"destruction"} de valeur.`,
+      };
+    },
+    code(rnd, rndf) {
+      const resultat = rnd(8, 25);
+      const pertes = rnd(1, 6);
+      const capital = rnd(30, 80);
+      return {
+        python: `resultat, pertes, capital = ${resultat}, ${pertes}, ${capital}\nraroc = (resultat - pertes) / capital\nprint(f"RAROC = {raroc:.1%}")`,
+        r: `resultat <- ${resultat}; pertes <- ${pertes}; capital <- ${capital}\nraroc <- (resultat - pertes) / capital\ncat("RAROC =", round(raroc*100,1), "%\\n")`,
+      };
+    },
+  },
+
+  // 6 Actuariat vie — prime pure
+  6: {
+    exo(rnd, rndf) {
+      const Mx = rnd(1000, 1500);
+      const Mxn = Mx - rnd(150, 350);
+      const Nx = rnd(12000, 18000);
+      const capital = rnd(5, 20) * 100000;
+      const prime = (Mx - Mxn) / Nx * capital;
+      return {
+        enonce: `Mx = ${Mx}, Mx+n = ${Mxn}, Nx = ${Nx}. Calculer la prime pure d'une temporaire décès pour un capital de ${capital.toLocaleString("fr-FR")} FCFA.`,
+        etapes: [
+          `Prime pure = (Mx - Mx+n)/Nx × Capital`,
+          `= (${Mx} - ${Mxn})/${Nx} × ${capital.toLocaleString("fr-FR")}`,
+        ],
+        solution: `Prime pure ≈ ${Math.round(prime).toLocaleString("fr-FR")} FCFA.`,
+      };
+    },
+    quiz(rnd, rndf) {
+      const chargement = rnd(2, 8);
+      const pm = rnd(300, 800) * 1000;
+      const rachat = pm * (1 - chargement/100);
+      return {
+        q: `Une PM de ${pm.toLocaleString("fr-FR")} FCFA a un chargement de rachat de ${chargement}%. Quelle est la valeur de rachat ?`,
+        options: [
+          `${Math.round(rachat).toLocaleString("fr-FR")} FCFA`,
+          `${pm.toLocaleString("fr-FR")} FCFA`,
+          `${Math.round(pm*(1+chargement/100)).toLocaleString("fr-FR")} FCFA`,
+          "0 FCFA"
+        ],
+        a: 0,
+        exp: `Valeur de rachat = PM × (1 - chargement) = ${pm.toLocaleString("fr-FR")} × ${(1-chargement/100).toFixed(2)} ≈ ${Math.round(rachat).toLocaleString("fr-FR")} FCFA.`,
+      };
+    },
+    code(rnd, rndf) {
+      const Mx = rnd(1000, 1500);
+      const Mxn = Mx - rnd(150, 350);
+      const Nx = rnd(12000, 18000);
+      return {
+        python: `Mx, Mxn, Nx = ${Mx}, ${Mxn}, ${Nx}\ncapital = 1_000_000\nprime = (Mx - Mxn) / Nx * capital\nprint(f"Prime pure = {prime:,.0f} FCFA")`,
+        r: `Mx <- ${Mx}; Mxn <- ${Mxn}; Nx <- ${Nx}\ncapital <- 1000000\nprime <- (Mx - Mxn) / Nx * capital\ncat("Prime pure =", round(prime), "FCFA\\n")`,
+      };
+    },
+  },
+
+  // 7 Actuariat non vie — Chain Ladder
+  7: {
+    exo(rnd, rndf) {
+      const f = rndf(1.05, 1.30, 2);
+      const paye = rnd(600, 1000);
+      const projection = paye * f;
+      const fUltime = rndf(1.02, 1.10, 2);
+      const ultime = projection * fUltime;
+      return {
+        enonce: `Un facteur de développement f = ${f} s'applique à un montant cumulé de ${paye}. Projeter le développement suivant, puis la charge ultime avec un facteur f_ultime = ${fUltime}.`,
+        etapes: [
+          `Projection = ${paye} × ${f} = ${projection.toFixed(1)}`,
+          `Charge ultime = ${projection.toFixed(1)} × ${fUltime}`,
+        ],
+        solution: `Charge ultime ≈ ${ultime.toFixed(1)}.`,
+      };
+    },
+    quiz(rnd, rndf) {
+      const paye = rnd(150, 300);
+      const facteurCumule = rnd(3, 6);
+      const ultimeApriori = rnd(800, 1200);
+      const ultimeBF = paye + (1 - 1/facteurCumule) * ultimeApriori;
+      const ultimeCL = paye * facteurCumule;
+      return {
+        q: `Payé = ${paye}, facteur cumulé = ${facteurCumule}, ultime a priori = ${ultimeApriori}. Quelle méthode donne le résultat le plus élevé ici : Chain Ladder (${ultimeCL}) ou Bornhuetter-Ferguson (${ultimeBF.toFixed(0)}) ?`,
+        options: [
+          ultimeCL > ultimeBF ? "Chain Ladder" : "Bornhuetter-Ferguson",
+          ultimeCL > ultimeBF ? "Bornhuetter-Ferguson" : "Chain Ladder",
+          "Les deux donnent exactement le même résultat",
+          "Aucune des deux méthodes n'est calculable ici"
+        ],
+        a: 0,
+        exp: `Chain Ladder = ${paye}×${facteurCumule} = ${ultimeCL}. BF = ${paye}+(1-1/${facteurCumule})×${ultimeApriori} = ${ultimeBF.toFixed(0)}.`,
+      };
+    },
+    code(rnd, rndf) {
+      const f = rndf(1.05, 1.30, 2);
+      const paye = rnd(600, 1000);
+      return {
+        python: `f, paye = ${f}, ${paye}\nprojection = paye * f\nprint(f"Projection développement suivant = {projection:.1f}")`,
+        r: `f <- ${f}; paye <- ${paye}\nprojection <- paye * f\ncat("Projection =", round(projection,1), "\\n")`,
+      };
+    },
+  },
+
+  // 8 Modèles de prévision — crédibilité
+  8: {
+    exo(rnd, rndf) {
+      const n = rnd(20, 100);
+      const k = rnd(150, 300);
+      const indiv = rnd(300, 700) * 1000;
+      const collectif = rnd(250, 450) * 1000;
+      const Z = n / (n + k);
+      const prime = Z*indiv + (1-Z)*collectif;
+      return {
+        enonce: `n = ${n} années d'exposition, k = ${k}, expérience individuelle = ${indiv.toLocaleString("fr-FR")}, expérience collective = ${collectif.toLocaleString("fr-FR")}. Calculer la prime crédibilisée.`,
+        etapes: [
+          `Z = n/(n+k) = ${n}/(${n}+${k}) = ${Z.toFixed(3)}`,
+          `Prime = Z×individuel + (1-Z)×collectif`,
+        ],
+        solution: `Prime crédibilisée ≈ ${Math.round(prime).toLocaleString("fr-FR")} FCFA.`,
+      };
+    },
+    quiz(rnd, rndf) {
+      const n = rnd(10, 500);
+      const k = 200;
+      const Z = n / (n + k);
+      return {
+        q: `Avec n = ${n} années d'exposition et k = ${k}, le facteur de crédibilité Z est-il plutôt proche de 0 ou de 1 ?`,
+        options: Z < 0.5 ? ["Proche de 0 (peu de crédibilité individuelle)", "Proche de 1 (forte crédibilité individuelle)"] : ["Proche de 1 (forte crédibilité individuelle)", "Proche de 0 (peu de crédibilité individuelle)"],
+        a: 0,
+        exp: `Z = ${n}/(${n}+${k}) = ${Z.toFixed(2)} : ${Z<0.5 ? "encore assez éloigné de 1, l'expérience collective domine" : "déjà relativement élevé, l'expérience individuelle pèse davantage"}.`,
+      };
+    },
+    code(rnd, rndf) {
+      const n = rnd(20, 100);
+      const k = rnd(150, 300);
+      const indiv = rnd(300, 700) * 1000;
+      const collectif = rnd(250, 450) * 1000;
+      return {
+        python: `n, k, indiv, collectif = ${n}, ${k}, ${indiv}, ${collectif}\nZ = n / (n + k)\nprime = Z*indiv + (1-Z)*collectif\nprint(f"Z = {Z:.2f}, prime crédibilisée = {prime:,.0f}")`,
+        r: `n <- ${n}; k <- ${k}; indiv <- ${indiv}; collectif <- ${collectif}\nZ <- n / (n + k)\nprime <- Z*indiv + (1-Z)*collectif\ncat("Z =", round(Z,2), " prime =", round(prime), "\\n")`,
+      };
+    },
+  },
+
+  // 9 Théorie du risque — borne de Lundberg
+  9: {
+    exo(rnd, rndf) {
+      const R = rndf(0.0002, 0.0008, 4);
+      const u = rnd(20, 80) * 1_000_000;
+      const produit = R * u;
+      return {
+        enonce: `Coefficient de Lundberg R = ${R}, réserve initiale u = ${u.toLocaleString("fr-FR")} FCFA. Donner la borne supérieure de la probabilité de ruine.`,
+        etapes: [
+          `R × u = ${R} × ${u.toLocaleString("fr-FR")} = ${produit.toFixed(0)}`,
+        ],
+        solution: `ψ(u) ≤ e^(-${produit.toFixed(0)}) ${produit > 15 ? "≈ 0 (ruine négligeable)" : `≈ ${Math.exp(-produit).toExponential(2)}`}.`,
+      };
+    },
+    quiz(rnd, rndf) {
+      const theta = rndf(0, 0.3, 2);
+      const zero = theta === 0;
+      return {
+        q: `Une compagnie applique un chargement de sécurité θ = ${theta}. La ruine est-elle certaine à long terme (ψ(u)=1 pour tout u) ?`,
+        options: [
+          "Oui, la ruine est certaine (θ nul, aucune marge de sécurité)",
+          "Non, la ruine n'est pas certaine (θ strictement positif)",
+          "Cela dépend uniquement de la réserve initiale u",
+          "Cela dépend uniquement de la loi des sinistres"
+        ],
+        a: zero ? 0 : 1,
+        exp: zero
+          ? "Avec θ = 0, aucune marge de sécurité n'est intégrée : la ruine est certaine (ψ(u)=1 pour tout u)."
+          : `θ = ${theta} > 0 : la ruine n'est pas certaine, une réserve suffisante permet ψ(u) < 1.`,
+      };
+    },
+    code(rnd, rndf) {
+      const R = rndf(0.0002, 0.0008, 4);
+      const u = rnd(20, 80) * 1_000_000;
+      return {
+        python: `import numpy as np\nR, u = ${R}, ${u}\nborne = np.exp(-R * u)\nprint(f"Borne de Lundberg : psi(u) <= {borne:.2e}")`,
+        r: `R <- ${R}; u <- ${u}\nborne <- exp(-R * u)\ncat("Borne de Lundberg : psi(u) <=", format(borne, scientific=TRUE), "\\n")`,
+      };
+    },
+  },
+
+  // 11 Bâle II — ratio McDonough
+  11: {
+    exo(rnd, rndf) {
+      const fp = rnd(30, 60);
+      const rwaCredit = rnd(300, 500);
+      const rwaMarche = rnd(15, 40);
+      const rwaOp = rnd(10, 30);
+      const rwaTotal = rwaCredit + rwaMarche + rwaOp;
+      const ratio = fp / rwaTotal;
+      return {
+        enonce: `Fonds propres = ${fp} Mds FCFA. RWA : crédit ${rwaCredit}, marché ${rwaMarche}, opérationnel ${rwaOp} (Mds FCFA). La banque est-elle conforme à Bâle II (min. 8%) ?`,
+        etapes: [
+          `RWA total = ${rwaCredit} + ${rwaMarche} + ${rwaOp} = ${rwaTotal}`,
+          `Ratio = ${fp} / ${rwaTotal}`,
+        ],
+        solution: `Ratio McDonough = ${(ratio*100).toFixed(1)}% — ${ratio >= 0.08 ? "conforme" : "NON conforme"} (minimum 8%).`,
+      };
+    },
+    quiz(rnd, rndf) {
+      const fp = rnd(30, 60);
+      const rwaTotal = rnd(350, 600);
+      const ratio = fp / rwaTotal;
+      return {
+        q: `Fonds propres = ${fp}, RWA total = ${rwaTotal} (Mds FCFA). La banque respecte-t-elle le minimum de 8% ?`,
+        options: [ratio >= 0.08 ? "Oui, ratio conforme" : "Non, ratio insuffisant", ratio >= 0.08 ? "Non, ratio insuffisant" : "Oui, ratio conforme", "Le minimum réglementaire est 12%", "Cela dépend uniquement du Pilier 2"],
+        a: 0,
+        exp: `Ratio = ${fp}/${rwaTotal} = ${(ratio*100).toFixed(1)}%, ${ratio>=0.08?"supérieur":"inférieur"} au seuil de 8%.`,
+      };
+    },
+    code(rnd, rndf) {
+      const fp = rnd(30, 60);
+      const rwaCredit = rnd(300, 500);
+      const rwaMarche = rnd(15, 40);
+      const rwaOp = rnd(10, 30);
+      return {
+        python: `fp, rwa_credit, rwa_marche, rwa_op = ${fp}, ${rwaCredit}, ${rwaMarche}, ${rwaOp}\nrwa_total = rwa_credit + rwa_marche + rwa_op\nratio = fp / rwa_total\nprint(f"Ratio McDonough = {ratio:.1%} — conforme: {ratio >= 0.08}")`,
+        r: `fp <- ${fp}; rwa_credit <- ${rwaCredit}; rwa_marche <- ${rwaMarche}; rwa_op <- ${rwaOp}\nrwa_total <- rwa_credit + rwa_marche + rwa_op\nratio <- fp / rwa_total\ncat("Ratio McDonough =", round(ratio*100,1), "% — conforme:", ratio >= 0.08, "\\n")`,
+      };
+    },
+  },
+
+  // 12 Solvabilité II — ratio de solvabilité
+  12: {
+    exo(rnd, rndf) {
+      const fp = rnd(80, 180);
+      const scr = rnd(60, 140);
+      const ratio = fp / scr;
+      return {
+        enonce: `Fonds propres éligibles = ${fp} Mds FCFA, SCR = ${scr} Mds FCFA. Calculer le ratio de solvabilité.`,
+        etapes: [`Ratio = ${fp} / ${scr}`],
+        solution: `Ratio de solvabilité ≈ ${(ratio*100).toFixed(0)}% — ${ratio >= 1 ? "au-dessus" : "en-dessous"} du seuil réglementaire de 100%.`,
+      };
+    },
+    quiz(rnd, rndf) {
+      const scr1 = rnd(30, 90);
+      const scr2 = rnd(20, 70);
+      const corr = rndf(0.1, 0.4, 2);
+      const bscr = Math.sqrt(scr1*scr1 + scr2*scr2 + 2*corr*scr1*scr2);
+      const somme = scr1+scr2;
+      return {
+        q: `SCR1=${scr1}, SCR2=${scr2}, corr=${corr}. Le BSCR agrégé (${bscr.toFixed(1)}) est-il inférieur à la somme simple (${somme}) ?`,
+        options: ["Oui, toujours (effet de diversification)", "Non, il est toujours supérieur", "Seulement si corr > 0,5", "Seulement si les deux SCR sont égaux"],
+        a: 0,
+        exp: `BSCR = ${bscr.toFixed(1)} < ${somme} : l'agrégation par corrélation < 1 produit toujours un bénéfice de diversification.`,
+      };
+    },
+    code(rnd, rndf) {
+      const fp = rnd(80, 180);
+      const scr = rnd(60, 140);
+      return {
+        python: `fp, scr = ${fp}, ${scr}\nratio = fp / scr\nprint(f"Ratio de solvabilité = {ratio:.0%}")`,
+        r: `fp <- ${fp}; scr <- ${scr}\nratio <- fp / scr\ncat("Ratio de solvabilité =", round(ratio*100), "%\\n")`,
+      };
+    },
+  },
+};
+
+function normCdf(x) {
+  // Approximation d'Abramowitz-Stegun de la fonction de répartition normale
+  const t = 1 / (1 + 0.2316419 * Math.abs(x));
+  const d = 0.3989423 * Math.exp(-x * x / 2);
+  let p = d * t * (0.3193815 + t*(-0.3565638 + t*(1.781478 + t*(-1.821256 + t*1.330274))));
+  if (x > 0) p = 1 - p;
+  return p;
+}
+
+</script>
+<script>
+let DATA = null;
+let GLOSSARY = null;
+let LS_KEY = null;
+let currentEmail = null;
+
+function loadProgress(){
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch(e){ return {}; }
+}
+function saveProgress(p){ if(LS_KEY) localStorage.setItem(LS_KEY, JSON.stringify(p)); }
+let progress = {};
+
+let state = { view: 'home', matiereId: null, tab: 'cours', quiz: null };
+
+const root = document.getElementById('view-root');
+const listEl = document.getElementById('matiere-list');
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('overlay');
+
+document.getElementById('menu-btn').addEventListener('click', () => {
+  sidebar.classList.add('open'); overlay.classList.add('show');
+});
+overlay.addEventListener('click', closeSidebar);
+function closeSidebar(){ sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+
+function toggleRead(id){
+  const p = progress[id] || {};
+  p.read = !p.read;
+  progress[id] = p; saveProgress(progress);
+  renderSidebar();
+  updateReadButton();
+}
+
+function updateReadButton(){
+  const btn = document.getElementById('mark-read-btn');
+  if(!btn) return;
+  const isRead = progress[state.matiereId] && progress[state.matiereId].read;
+  btn.textContent = isRead ? '✓ Lu' : 'Marquer comme lu';
+  btn.classList.toggle('is-read', !!isRead);
+}
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ---------------- Sidebar ---------------- */
+function renderSidebar(){
+  const doneCount = DATA.filter(m => progress[m.id] && progress[m.id].read).length;
+  document.getElementById('progress-text').textContent = doneCount + ' / ' + DATA.length;
+  document.getElementById('progress-fill').style.width = (doneCount/DATA.length*100) + '%';
+
+  let html = '';
+  let curSem = null;
+  DATA.forEach((m, i) => {
+    if(m.semestre !== curSem){
+      curSem = m.semestre;
+      html += '<div class="sem-label">' + (curSem === 'S9' ? 'Semestre 9' : 'Semestre 10') + '</div>';
+    }
+    const done = progress[m.id] && progress[m.id].read;
+    const active = state.matiereId === m.id;
+    html += '<div class="mat-item' + (active?' active':'') + (done?' done':'') + '" data-id="' + m.id + '">' +
+      '<span class="dot">' + (done ? '✓' : '') + '</span>' +
+      '<span class="num">' + (i+1) + '.</span>&nbsp;' + esc(m.titre) +
+    '</div>';
+  });
+  listEl.innerHTML = html;
+  listEl.querySelectorAll('.mat-item').forEach(el => {
+    el.addEventListener('click', () => { openMatiere(parseInt(el.dataset.id)); closeSidebar(); });
+  });
+}
+
+/* ---------------- Home ---------------- */
+function renderHome(){
+  const doneCount = DATA.filter(m => progress[m.id] && progress[m.id].read).length;
+  const quizzed = DATA.filter(m => progress[m.id] && progress[m.id].bestScore !== undefined);
+  const avgScore = quizzed.length ? Math.round(quizzed.reduce((a,m)=>a + progress[m.id].bestScore/progress[m.id].total, 0) / quizzed.length * 100) : null;
+  const totalExercices = DATA.reduce((a,m)=>a+m.exercices.length,0);
+
+  let html = '<div class="home-hero">' +
+    '<div class="kicker">Cahier d\'étude</div>' +
+    '<h2>Master 2 — Gestion des Risques<br>en Assurance et Finance</h2>' +
+    '<p>Les 14 matières des semestres 9 et 10, condensées en fiches de cours, exercices pratiques corrigés et quiz. Clique une matière dans le menu ou ci-dessous pour commencer.</p>' +
+  '</div>';
+
+  html += '<div class="stat-row">' +
+    '<div class="stat-card"><div class="n">' + doneCount + '/14</div><div class="l">Matières lues</div></div>' +
+    '<div class="stat-card"><div class="n">' + (avgScore===null ? '—' : avgScore+'%') + '</div><div class="l">Score moyen quiz</div></div>' +
+    '<div class="stat-card"><div class="n">' + totalExercices + '</div><div class="l">Exercices pratiques</div></div>' +
+  '</div>';
+
+  ['S9','S10'].forEach(sem => {
+    const list = DATA.filter(m => m.semestre === sem);
+    html += '<div class="sem-block"><h3>' + (sem==='S9' ? 'Semestre 9' : 'Semestre 10') + '</h3>';
+    list.forEach(m => {
+      const done = progress[m.id] && progress[m.id].read;
+      html += '<div class="home-card' + (done?' done':'') + '" data-id="' + m.id + '">' +
+        '<div class="idx">' + (done ? '✓' : (m.id+1)) + '</div>' +
+        '<div class="body"><div class="t">' + esc(m.titre) + '</div><div class="m">' + m.sections.length + ' sections · ' + m.exercices.length + ' exercices · ' + m.quiz.length + ' questions</div></div>' +
+      '</div>';
+    });
+    html += '</div>';
+  });
+
+  root.innerHTML = html;
+  root.querySelectorAll('.home-card').forEach(el => {
+    el.addEventListener('click', () => openMatiere(parseInt(el.dataset.id)));
+  });
+}
+
+/* ---------------- Matiere ---------------- */
+function openMatiere(id, tab){
+  state.view = 'matiere';
+  state.matiereId = id;
+  state.tab = tab || 'cours';
+  state.quiz = null;
+  setActiveDictLink(false);
+  renderSidebar();
+  renderMatiere();
+  window.scrollTo(0,0);
+}
+
+function renderMatiere(){
+  const m = DATA.find(x => x.id === state.matiereId);
+  const isRead = progress[m.id] && progress[m.id].read;
+  let html = '<div class="mat-title-row"><h2>' + esc(m.titre) + '</h2>' +
+      '<button id="mark-read-btn" class="btn-mark' + (isRead?' is-read':'') + '">' + (isRead ? '✓ Lu' : 'Marquer comme lu') + '</button>' +
+    '</div>' +
+    '<div class="tabs">' +
+      '<button class="tab-btn' + (state.tab==='cours'?' active':'') + '" data-tab="cours">Cours</button>' +
+      '<button class="tab-btn' + (state.tab==='exercices'?' active':'') + '" data-tab="exercices">Exercices (' + m.exercices.length + ')</button>' +
+      (m.code ? '<button class="tab-btn' + (state.tab==='code'?' active':'') + '" data-tab="code">Code</button>' : '') +
+      '<button class="tab-btn' + (state.tab==='quiz'?' active':'') + '" data-tab="quiz">Quiz (' + m.quiz.length + (GENERATORS[m.id] ? '+' : '') + ')</button>' +
+    '</div>' +
+    '<div id="tab-content"></div>';
+  root.innerHTML = html;
+
+  document.getElementById('mark-read-btn').addEventListener('click', () => toggleRead(m.id));
+
+  root.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => {
+    state.tab = b.dataset.tab; state.quiz = null; renderMatiere();
+  }));
+
+  const tc = document.getElementById('tab-content');
+  if(state.tab === 'cours'){
+    tc.innerHTML = renderCours(m);
+  } else if(state.tab === 'exercices'){
+    tc.innerHTML = renderExercices(m);
+    bindGeneratorExo(m);
+  } else if(state.tab === 'code'){
+    tc.innerHTML = renderCode(m);
+    bindCodeToggles(m);
+  } else {
+    renderQuizTab(m, tc);
+  }
+}
+
+function rnd(min, max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function rndf(min, max, dec){ const v = Math.random()*(max-min)+min; return parseFloat(v.toFixed(dec)); }
+
+function renderCours(m){
+  let h = '';
+  if(m.objectifs && m.objectifs.length){
+    h += '<div class="objectifs"><h4>Objectifs pédagogiques</h4><ul>' +
+      m.objectifs.map(o => '<li>' + esc(o) + '</li>').join('') + '</ul></div>';
+  }
+  m.sections.forEach(sec => {
+    h += '<div class="section-block"><h3>' + esc(sec.titre) + '</h3>';
+    (sec.paragraphs||[]).forEach(p => h += '<p>' + esc(p) + '</p>');
+    if(sec.formule) h += '<div class="formule">' + esc(sec.formule) + '</div>';
+    if(sec.bullets) h += '<ul>' + sec.bullets.map(b => '<li>' + esc(b) + '</li>').join('') + '</ul>';
+    h += '</div>';
+  });
+
+  const idx = DATA.findIndex(x => x.id === m.id);
+  const prev = DATA[idx-1], next = DATA[idx+1];
+  h += '<div class="mat-footer-nav">' +
+    '<button ' + (!prev?'disabled':'') + ' id="nav-prev">← ' + (prev ? esc(prev.titre) : '') + '</button>' +
+    '<button ' + (!next?'disabled':'') + ' id="nav-next">' + (next ? esc(next.titre) : '') + ' →</button>' +
+  '</div>';
+  setTimeout(() => {
+    const pb = document.getElementById('nav-prev'), nb = document.getElementById('nav-next');
+    if(pb && prev) pb.addEventListener('click', () => openMatiere(prev.id));
+    if(nb && next) nb.addEventListener('click', () => openMatiere(next.id));
+  });
+  return h;
+}
+
+function renderExercices(m){
+  let h = '';
+  if(!m.exercices.length){
+    h += '<p class="exo-intro">Pas d\'exercice fixe pour cette matière — utilise le générateur ci-dessous.</p>';
+  } else {
+    h += '<p class="exo-intro">Cherche à résoudre chaque exercice avant de dérouler les étapes et la solution.</p>';
+    m.exercices.forEach((ex, i) => {
+      h += '<div class="exo-card">' +
+        '<div class="exo-head"><span class="exo-num">Exercice ' + (i+1) + '</span><span class="exo-title">' + esc(ex.titre) + '</span></div>' +
+        '<p class="exo-enonce">' + esc(ex.enonce) + '</p>' +
+        '<button class="btn-ghost exo-toggle" data-exo="' + i + '">Afficher la correction</button>' +
+        '<div class="exo-correction" id="exo-corr-' + i + '" style="display:none;">' +
+          '<div class="exo-etapes"><h5>Étapes</h5><ol>' + ex.etapes.map(e => '<li>' + esc(e) + '</li>').join('') + '</ol></div>' +
+          '<div class="exo-solution"><h5>Solution</h5><p>' + esc(ex.solution) + '</p></div>' +
+        '</div>' +
+      '</div>';
+    });
+  }
+
+  const idx = DATA.findIndex(x => x.id === m.id);
+  const prev = DATA[idx-1], next = DATA[idx+1];
+  h += '<div id="gen-exo-zone"></div>';
+  h += '<div class="mat-footer-nav">' +
+    '<button ' + (!prev?'disabled':'') + ' id="nav-prev-ex">← ' + (prev ? esc(prev.titre) : '') + '</button>' +
+    '<button ' + (!next?'disabled':'') + ' id="nav-next-ex">' + (next ? esc(next.titre) : '') + ' →</button>' +
+  '</div>';
+
+  setTimeout(() => {
+    document.querySelectorAll('.exo-toggle').forEach(b => b.addEventListener('click', () => {
+      const i = b.dataset.exo;
+      const box = document.getElementById('exo-corr-' + i);
+      const showing = box.style.display !== 'none';
+      box.style.display = showing ? 'none' : 'block';
+      b.textContent = showing ? 'Afficher la correction' : 'Masquer la correction';
+    }));
+    const pb = document.getElementById('nav-prev-ex'), nb = document.getElementById('nav-next-ex');
+    if(pb && prev) pb.addEventListener('click', () => openMatiere(prev.id, 'exercices'));
+    if(nb && next) nb.addEventListener('click', () => openMatiere(next.id, 'exercices'));
+  });
+  return h;
+}
+
+/* ---------------- Générateur d'exercices ---------------- */
+function bindGeneratorExo(m){
+  const gen = GENERATORS[m.id];
+  const zone = document.getElementById('gen-exo-zone');
+  if(!zone) return;
+  if(!gen){
+    zone.innerHTML = '';
+    return;
+  }
+  zone.innerHTML =
+    '<div class="gen-box">' +
+      '<div class="gen-head"><span class="gen-badge">Générateur</span><span class="gen-title">Exercices supplémentaires à volonté</span></div>' +
+      '<p class="gen-desc">Chaque clic génère un nouvel exercice avec des valeurs différentes — entraîne-toi autant que tu veux.</p>' +
+      '<button class="btn-primary" id="gen-new-exo">Générer un exercice</button>' +
+      '<div id="gen-exo-content"></div>' +
+    '</div>';
+  document.getElementById('gen-new-exo').addEventListener('click', () => showGeneratedExo(gen));
+}
+
+function showGeneratedExo(gen){
+  const ex = gen.exo(rnd, rndf);
+  const zone = document.getElementById('gen-exo-content');
+  zone.innerHTML =
+    '<div class="exo-card gen-generated">' +
+      '<div class="exo-head"><span class="exo-num">Généré</span></div>' +
+      '<p class="exo-enonce">' + esc(ex.enonce) + '</p>' +
+      '<button class="btn-ghost exo-toggle" id="gen-toggle">Afficher la correction</button>' +
+      '<div class="exo-correction" id="gen-corr" style="display:none;">' +
+        '<div class="exo-etapes"><h5>Étapes</h5><ol>' + ex.etapes.map(e => '<li>' + esc(e) + '</li>').join('') + '</ol></div>' +
+        '<div class="exo-solution"><h5>Solution</h5><p>' + esc(ex.solution) + '</p></div>' +
+      '</div>' +
+    '</div>';
+  document.getElementById('gen-toggle').addEventListener('click', () => {
+    const box = document.getElementById('gen-corr');
+    const showing = box.style.display !== 'none';
+    box.style.display = showing ? 'none' : 'block';
+    document.getElementById('gen-toggle').textContent = showing ? 'Afficher la correction' : 'Masquer la correction';
+  });
+}
+
+function renderCode(m){
+  if(!m.code) return '<div id="quiz-intro"><p>Pas de code pour cette matière.</p></div>';
+  let h = '<p class="exo-intro">Extraits de code illustrant les calculs du cours — à adapter à tes propres données.</p>' +
+    '<div class="code-switch">' +
+      '<button class="code-lang-btn active" data-lang="python">Python</button>' +
+      '<button class="code-lang-btn" data-lang="r">R</button>' +
+    '</div>' +
+    '<div class="code-block" id="code-block-python"><pre><code>' + esc(m.code.python) + '</code></pre></div>' +
+    '<div class="code-block" id="code-block-r" style="display:none;"><pre><code>' + esc(m.code.r) + '</code></pre></div>';
+
+  h += '<div id="gen-code-zone"></div>';
+
+  const idx = DATA.findIndex(x => x.id === m.id);
+  const prev = DATA[idx-1], next = DATA[idx+1];
+  h += '<div class="mat-footer-nav">' +
+    '<button ' + (!prev?'disabled':'') + ' id="nav-prev-code">← ' + (prev ? esc(prev.titre) : '') + '</button>' +
+    '<button ' + (!next?'disabled':'') + ' id="nav-next-code">' + (next ? esc(next.titre) : '') + ' →</button>' +
+  '</div>';
+  setTimeout(() => {
+    const pb = document.getElementById('nav-prev-code'), nb = document.getElementById('nav-next-code');
+    if(pb && prev) pb.addEventListener('click', () => openMatiere(prev.id, prev.code ? 'code' : 'cours'));
+    if(nb && next) nb.addEventListener('click', () => openMatiere(next.id, next.code ? 'code' : 'cours'));
+  });
+  return h;
+}
+
+function bindCodeToggles(m){
+  document.querySelectorAll('.code-lang-btn').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.code-lang-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    const lang = b.dataset.lang;
+    document.getElementById('code-block-python').style.display = lang === 'python' ? 'block' : 'none';
+    document.getElementById('code-block-r').style.display = lang === 'r' ? 'block' : 'none';
+  }));
+  bindGeneratorCode(m);
+}
+
+/* ---------------- Générateur de code ---------------- */
+function bindGeneratorCode(m){
+  const gen = GENERATORS[m.id];
+  const zone = document.getElementById('gen-code-zone');
+  if(!zone) return;
+  if(!gen || typeof gen.code !== 'function'){
+    zone.innerHTML = '';
+    return;
+  }
+  zone.innerHTML =
+    '<div class="gen-box">' +
+      '<div class="gen-head"><span class="gen-badge">Générateur</span><span class="gen-title">Nouvel exemple de code à volonté</span></div>' +
+      '<p class="gen-desc">Chaque clic génère un nouveau petit script (Python et R) avec des valeurs différentes, prêt à copier-coller.</p>' +
+      '<button class="btn-primary" id="gen-new-code">Générer un exemple</button>' +
+      '<div id="gen-code-content"></div>' +
+    '</div>';
+  document.getElementById('gen-new-code').addEventListener('click', () => showGeneratedCode(gen));
+}
+
+let genCodeLang = 'python';
+function showGeneratedCode(gen){
+  const c = gen.code(rnd, rndf);
+  const zone = document.getElementById('gen-code-content');
+  zone.innerHTML =
+    '<div class="code-switch">' +
+      '<button class="code-lang-btn' + (genCodeLang==='python'?' active':'') + '" data-genlang="python">Python</button>' +
+      '<button class="code-lang-btn' + (genCodeLang==='r'?' active':'') + '" data-genlang="r">R</button>' +
+    '</div>' +
+    '<div class="code-block" id="gen-code-python" style="display:' + (genCodeLang==='python'?'block':'none') + ';"><pre><code>' + esc(c.python) + '</code></pre></div>' +
+    '<div class="code-block" id="gen-code-r" style="display:' + (genCodeLang==='r'?'block':'none') + ';"><pre><code>' + esc(c.r) + '</code></pre></div>';
+  zone.querySelectorAll('[data-genlang]').forEach(b => b.addEventListener('click', () => {
+    genCodeLang = b.dataset.genlang;
+    zone.querySelectorAll('[data-genlang]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('gen-code-python').style.display = genCodeLang === 'python' ? 'block' : 'none';
+    document.getElementById('gen-code-r').style.display = genCodeLang === 'r' ? 'block' : 'none';
+  }));
+}
+
+/* ---------------- Quiz ---------------- */
+function shuffleArr(arr){
+  const a = arr.slice();
+  for(let i = a.length-1; i>0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function buildQuizPool(m){
+  const gen = GENERATORS[m.id];
+  let pool = m.quiz.slice();
+  if(gen){
+    const nGen = 6;
+    for(let k=0;k<nGen;k++) pool.push(gen.quiz(rnd, rndf));
+  }
+  return shuffleArr(pool);
+}
+
+function renderQuizTab(m, tc){
+  const gen = GENERATORS[m.id];
+  if(!m.quiz.length && !gen){
+    tc.innerHTML = '<div id="quiz-intro"><p>Aucun quiz pour cette matière.</p></div>';
+    return;
+  }
+  if(!state.quiz){
+    const best = progress[m.id] && progress[m.id].bestScore !== undefined ? progress[m.id] : null;
+    const totalDisponible = m.quiz.length + (gen ? 6 : 0);
+    tc.innerHTML = '<div id="quiz-intro">' +
+      '<div class="big-icon">📝</div>' +
+      '<p>' + totalDisponible + ' questions (' + (gen ? 'banque + générées aléatoirement, différentes à chaque tentative' : 'banque fixe') + ') pour tester ta compréhension de "' + esc(m.titre) + '".' +
+      (best ? '<br>Meilleur score : <strong>' + best.bestScore + '/' + best.total + '</strong>' : '') + '</p>' +
+      '<button class="btn-primary" id="start-quiz">Commencer le quiz</button>' +
+    '</div>';
+    document.getElementById('start-quiz').addEventListener('click', () => {
+      state.quiz = { qi: 0, score: 0, answered: false, selected: null, order: buildQuizPool(m) };
+      renderQuizTab(m, tc);
+    });
+    return;
+  }
+
+  const qz = state.quiz;
+  if(qz.qi >= qz.order.length){
+    const pct = Math.round(qz.score/qz.order.length*100);
+    const p = progress[m.id] || {};
+    if(p.bestScore === undefined || qz.score > p.bestScore){ p.bestScore = qz.score; p.total = qz.order.length; }
+    progress[m.id] = p; saveProgress(progress); renderSidebar();
+
+    tc.innerHTML = '<div class="quiz-result">' +
+      '<div class="score">' + qz.score + '<span>/' + qz.order.length + '</span></div>' +
+      '<div class="msg">' + (pct >= 75 ? 'Bien maîtrisé — continue ainsi.' : pct >= 50 ? 'Correct, quelques notions à revoir.' : 'Relis le cours puis retente le quiz.') + '</div>' +
+      '<button class="btn-ghost" id="retry-quiz">Refaire le quiz</button> ' +
+      '<button class="btn-primary" id="back-cours">Revoir le cours</button>' +
+    '</div>';
+    document.getElementById('retry-quiz').addEventListener('click', () => {
+      state.quiz = { qi: 0, score: 0, answered: false, selected: null, order: buildQuizPool(m) };
+      renderQuizTab(m, tc);
+    });
+    document.getElementById('back-cours').addEventListener('click', () => {
+      state.tab = 'cours'; state.quiz = null; renderMatiere();
+    });
+    return;
+  }
+
+  const q = qz.order[qz.qi];
+  let h = '<div class="q-progress">Question ' + (qz.qi+1) + ' / ' + qz.order.length + '</div>' +
+    '<div class="q-track"><div class="q-track-fill" style="width:' + (qz.qi/qz.order.length*100) + '%"></div></div>' +
+    '<div class="q-text">' + esc(q.q) + '</div>';
+  q.options.forEach((opt, oi) => {
+    let cls = 'q-opt';
+    if(qz.answered){
+      if(oi === q.a) cls += ' correct';
+      else if(oi === qz.selected) cls += ' wrong';
+    }
+    h += '<button class="' + cls + '" data-oi="' + oi + '" ' + (qz.answered?'disabled':'') + '>' + esc(opt) + '</button>';
+  });
+  if(qz.answered){
+    h += '<div class="q-explain">' + esc(q.exp) + '</div>' +
+      '<div class="q-next"><button class="btn-primary" id="next-q">' + (qz.qi+1 < qz.order.length ? 'Question suivante →' : 'Voir le résultat') + '</button></div>';
+  }
+  tc.innerHTML = h;
+
+  if(!qz.answered){
+    tc.querySelectorAll('.q-opt').forEach(b => b.addEventListener('click', () => {
+      const oi = parseInt(b.dataset.oi);
+      qz.answered = true; qz.selected = oi;
+      if(oi === q.a) qz.score++;
+      renderQuizTab(m, tc);
+    }));
+  } else {
+    document.getElementById('next-q').addEventListener('click', () => {
+      qz.qi++; qz.answered = false; qz.selected = null;
+      renderQuizTab(m, tc);
+    });
+  }
+}
+
+function highlightSnippet(snippet, q){
+  const lower = snippet.toLowerCase();
+  const pos = lower.indexOf(q);
+  if(pos < 0) return esc(snippet);
+  return esc(snippet.slice(0,pos)) + '<mark>' + esc(snippet.slice(pos,pos+q.length)) + '</mark>' + esc(snippet.slice(pos+q.length));
+}
+
+/* ---------------- Search ---------------- */
+function renderSearch(query){
+  const q = query.trim().toLowerCase();
+  if(!q){ state.view='home'; setActiveDictLink(false); renderHome(); return; }
+  setActiveDictLink(false);
+  const hits = [];
+  DATA.forEach(m => {
+    m.sections.forEach(sec => {
+      const hay = (sec.titre + ' ' + (sec.paragraphs||[]).join(' ') + ' ' + (sec.bullets||[]).join(' ')).toLowerCase();
+      if(hay.includes(q)){
+        const src = (sec.paragraphs && sec.paragraphs[0]) || (sec.bullets && sec.bullets[0]) || '';
+        const pos = src.toLowerCase().indexOf(q);
+        const snippet = pos >= 0 ? '…' + src.slice(Math.max(0,pos-40), pos+80) + '…' : src.slice(0,100);
+        hits.push({ m, sec, snippet });
+      }
+    });
+  });
+  let html = '<div class="home-hero"><div class="kicker">Recherche</div><h2>« ' + esc(query) + ' »</h2>' +
+    '<p>' + hits.length + ' résultat(s)</p></div>';
+  hits.slice(0,40).forEach(h => {
+    html += '<div class="search-hit" data-id="' + h.m.id + '">' +
+      '<div class="h-ue">' + esc(h.m.titre) + ' — ' + esc(h.sec.titre) + '</div>' +
+      '<div class="h-snip">' + highlightSnippet(h.snippet, q) + '</div>' +
+    '</div>';
+  });
+  root.innerHTML = html;
+  root.querySelectorAll('.search-hit').forEach(el => el.addEventListener('click', () => openMatiere(parseInt(el.dataset.id))));
+}
+
+document.getElementById('search-input').addEventListener('input', (e) => {
+  renderSearch(e.target.value);
+});
+
+/* ---------------- Init ---------------- */
+document.getElementById('sidebar-head').addEventListener('click', () => {
+  state.view = 'home'; state.matiereId = null; setActiveDictLink(false); setActiveDocsLink(false); renderSidebar(); renderHome();
+});
+document.querySelector('#sidebar-head').style.cursor = 'pointer';
+
+document.getElementById('dictionnaire-link').addEventListener('click', () => {
+  state.view = 'dictionnaire'; state.matiereId = null; setActiveDictLink(true); setActiveDocsLink(false);
+  renderSidebar(); renderDictionnaire('');
+  closeSidebar();
+  window.scrollTo(0,0);
+});
+
+document.getElementById('documents-link').addEventListener('click', () => {
+  state.view = 'documents'; state.matiereId = null; setActiveDictLink(false); setActiveDocsLink(true);
+  renderSidebar(); renderDocuments();
+  closeSidebar();
+  window.scrollTo(0,0);
+});
+
+function setActiveDictLink(active){
+  document.getElementById('dictionnaire-link').classList.toggle('active', active);
+}
+function setActiveDocsLink(active){
+  document.getElementById('documents-link').classList.toggle('active', active);
+}
+
+/* ---------------- Mes documents ---------------- */
+function mdToHtml(md){
+  const lines = (md || '').split('\n');
+  let html = '';
+  let inList = false;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if(line.startsWith('## ')){
+      if(inList){ html += '</ul>'; inList = false; }
+      html += '<h2>' + esc(line.slice(3)) + '</h2>';
+    } else if(line.startsWith('- ') || line.startsWith('* ')){
+      if(!inList){ html += '<ul>'; inList = true; }
+      html += '<li>' + esc(line.slice(2)) + '</li>';
+    } else if(line === ''){
+      if(inList){ html += '</ul>'; inList = false; }
+    } else {
+      if(inList){ html += '</ul>'; inList = false; }
+      html += '<p>' + esc(line) + '</p>';
+    }
+  }
+  if(inList) html += '</ul>';
+  return html;
+}
+
+function renderDocuments(){
+  let html = '<div class="home-hero">' +
+    '<div class="kicker">Assistant de lecture</div>' +
+    '<h2>Mes documents</h2>' +
+    '<p>Dépose un PDF ou un Word (.docx) de cours (max 4 Mo) — l\'IA en tire un résumé structuré et les notions clés, adapté au niveau M2 GRAF.</p>' +
+  '</div>';
+
+  html += '<div id="doc-upload-box">' +
+    '<select id="doc-matiere">' +
+      '<option value="">Aucune matière en particulier</option>' +
+      DATA.map(m => '<option value="' + esc(m.titre) + '">' + esc(m.titre) + '</option>').join('') +
+    '</select>' +
+    '<input type="file" id="doc-file" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">' +
+    '<button class="btn-primary" id="doc-submit">Analyser le document</button>' +
+    '<div id="doc-upload-msg"></div>' +
+  '</div>';
+
+  html += '<div id="doc-result"></div>';
+
+  html += '<h3 style="font-family:\'Source Serif 4\',serif;color:var(--navy);font-size:18px;margin:32px 0 14px;">Historique</h3>';
+  html += '<div id="doc-history"><p style="color:var(--muted);font-size:13.5px;">Chargement…</p></div>';
+
+  root.innerHTML = html;
+
+  document.getElementById('doc-submit').addEventListener('click', submitDocUpload);
+  loadDocHistory();
+}
+
+async function submitDocUpload(){
+  const fileInput = document.getElementById('doc-file');
+  const matiereTitre = document.getElementById('doc-matiere').value;
+  const msgEl = document.getElementById('doc-upload-msg');
+  const btn = document.getElementById('doc-submit');
+  const file = fileInput.files[0];
+
+  if(!file){ msgEl.textContent = 'Choisis un fichier PDF.'; msgEl.className = 'err'; return; }
+  if(file.size > 4 * 1024 * 1024){ msgEl.textContent = 'Fichier trop volumineux (max 4 Mo).'; msgEl.className = 'err'; return; }
+  if(!currentEmail){ msgEl.textContent = 'Session expirée, recharge la page.'; msgEl.className = 'err'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Analyse en cours…';
+  msgEl.textContent = '';
+  msgEl.className = '';
+
+  try {
+    const fileBase64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const res = await fetch('/api/summarize-doc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: currentEmail, filename: file.name, fileBase64, matiereTitre: matiereTitre || null }),
+    });
+
+    if(res.status === 413){ msgEl.textContent = 'Fichier trop volumineux pour le serveur (max 4 Mo).'; msgEl.className = 'err'; return; }
+    if(res.status === 403){ msgEl.textContent = "Cet accès a été bloqué. Contacte l'administrateur."; msgEl.className = 'err'; return; }
+    if(!res.ok){
+      const { error } = await res.json().catch(() => ({}));
+      msgEl.textContent = error === 'pdf_parse_failed' || error === 'empty_pdf'
+        ? "Impossible de lire ce PDF (peut-être un scan sans texte). Réessaie avec un autre fichier."
+        : "Échec de l'analyse. Réessaie dans un instant.";
+      msgEl.className = 'err';
+      return;
+    }
+
+    const { doc } = await res.json();
+    msgEl.textContent = 'Analyse terminée.';
+    msgEl.className = 'ok';
+    showDocSummary(doc);
+    loadDocHistory();
+    fileInput.value = '';
+  } catch(err){
+    console.error('submitDocUpload error:', err);
+    msgEl.textContent = 'Connexion impossible. Réessaie.';
+    msgEl.className = 'err';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Analyser le document';
+  }
+}
+
+function showDocSummary(doc){
+  const el = document.getElementById('doc-result');
+  el.innerHTML = '<div class="doc-summary">' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">' + esc(doc.filename) + (doc.matiereTitre ? ' — ' + esc(doc.matiereTitre) : '') + '</div>' +
+    mdToHtml(doc.summary) +
+  '</div>';
+}
+
+async function loadDocHistory(){
+  const el = document.getElementById('doc-history');
+  if(!el || !currentEmail) return;
+  try {
+    const res = await fetch('/api/summarize-doc?email=' + encodeURIComponent(currentEmail));
+    if(!res.ok){ el.innerHTML = '<p style="color:var(--muted);font-size:13.5px;">Historique indisponible.</p>'; return; }
+    const { docs } = await res.json();
+    if(!docs.length){ el.innerHTML = '<p style="color:var(--muted);font-size:13.5px;">Aucun document analysé pour l\'instant.</p>'; return; }
+    el.innerHTML = docs.map(d =>
+      '<div class="doc-history-item" data-id="' + esc(d.id) + '">' +
+        '<div class="dh-title">' + esc(d.filename) + '</div>' +
+        '<div class="dh-meta">' + (d.matiereTitre ? esc(d.matiereTitre) + ' — ' : '') + new Date(d.createdAt).toLocaleDateString('fr-FR') + '</div>' +
+      '</div>'
+    ).join('');
+    el.querySelectorAll('.doc-history-item').forEach(item => {
+      const doc = docs.find(d => d.id === item.dataset.id);
+      item.addEventListener('click', () => { showDocSummary(doc); window.scrollTo(0,0); });
+    });
+  } catch(err){
+    console.error('loadDocHistory error:', err);
+    el.innerHTML = '<p style="color:var(--muted);font-size:13.5px;">Historique indisponible.</p>';
+  }
+}
+
+function renderDictionnaire(query){
+  const q = (query||'').trim().toLowerCase();
+  const matieresById = {}; DATA.forEach(m => matieresById[m.id] = m);
+  const filtered = GLOSSARY.filter(g =>
+    !q || g.terme.toLowerCase().includes(q) || g.def.toLowerCase().includes(q)
+  ).sort((a,b) => a.terme.localeCompare(b.terme, 'fr'));
+
+  let html = '<div class="home-hero">' +
+    '<div class="kicker">Vocabulaire transversal</div>' +
+    '<h2>Dictionnaire des notions clés</h2>' +
+    '<p>' + GLOSSARY.length + ' termes et expressions clés couvrant les 14 matières. Recherche un mot ou clique une matière pour filtrer.</p>' +
+  '</div>';
+  html += '<input type="text" id="dict-search" placeholder="Rechercher un terme…" value="' + esc(query||'') + '">';
+  html += '<div id="dict-results"></div>';
+  root.innerHTML = html;
+
+  function renderList(list){
+    if(!list.length){
+      document.getElementById('dict-results').innerHTML = '<p style="color:var(--muted);margin-top:20px;">Aucun terme trouvé.</p>';
+      return;
+    }
+    let curLetter = null;
+    let h = '';
+    list.forEach(g => {
+      const letter = g.terme[0].toUpperCase();
+      if(letter !== curLetter){ curLetter = letter; h += '<div class="dict-letter">' + letter + '</div>'; }
+      const chips = (g.mats||[]).map(mid => matieresById[mid] ? '<span class="dict-chip" data-id="' + mid + '">' + esc(matieresById[mid].titre) + '</span>' : '').join('');
+      h += '<div class="dict-entry"><div class="dict-term">' + esc(g.terme) + '</div>' +
+        '<div class="dict-def">' + esc(g.def) + '</div>' +
+        '<div class="dict-chips">' + chips + '</div></div>';
+    });
+    document.getElementById('dict-results').innerHTML = h;
+    document.querySelectorAll('.dict-chip').forEach(c => c.addEventListener('click', () => openMatiere(parseInt(c.dataset.id))));
+  }
+  renderList(filtered);
+
+  document.getElementById('dict-search').addEventListener('input', (e) => {
+    const nq = e.target.value.trim().toLowerCase();
+    const list = GLOSSARY.filter(g => !nq || g.terme.toLowerCase().includes(nq) || g.def.toLowerCase().includes(nq))
+      .sort((a,b) => a.terme.localeCompare(b.terme, 'fr'));
+    renderList(list);
+  });
+}
+
+/* ---------------- Déverrouillage & déchiffrement ---------------- */
+const SESSION_KEY = 'm2graf_session_v1'; // { email, token }
+let pendingEmail = null;
+
+function hexToBytes(hex){
+  const arr = new Uint8Array(hex.length/2);
+  for(let i=0;i<arr.length;i++) arr[i] = parseInt(hex.substr(i*2,2),16);
+  return arr;
+}
+function base64ToBytes(b64){
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+
+async function decryptContent(hexKey){
+  const res = await fetch('/app.enc', { cache: 'no-store' });
+  if(!res.ok) throw new Error('fetch_enc_failed');
+  const b64 = (await res.text()).trim();
+  const raw = base64ToBytes(b64);
+  const iv = raw.slice(0, 12);
+  const combined = raw.slice(12); // ciphertext || authTag, format attendu par Web Crypto
+  const keyBytes = hexToBytes(hexKey);
+  const cryptoKey = await crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['decrypt']);
+  const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, cryptoKey, combined);
+  return JSON.parse(new TextDecoder().decode(plainBuf));
+}
+
+function showGateMsg(text, kind){
+  const el = document.getElementById('gate-msg');
+  el.textContent = text;
+  el.className = kind || '';
+}
+
+function showEmailStep(){
+  document.getElementById('gate-step-email').style.display = 'block';
+  document.getElementById('gate-step-code').style.display = 'none';
+}
+function showCodeStep(email){
+  document.getElementById('gate-email-display').textContent = email;
+  document.getElementById('gate-step-email').style.display = 'none';
+  document.getElementById('gate-step-code').style.display = 'block';
+  document.getElementById('gate-code').value = '';
+  document.getElementById('gate-code').focus();
+}
+
+let isSendingCode = false;
+let isVerifyingCode = false;
+
+async function finishUnlock(key, email, token){
+  const decrypted = await decryptContent(key);
+  DATA = decrypted.items;
+  GLOSSARY = decrypted.glossary;
+  LS_KEY = 'm2graf_progress_' + email;
+  currentEmail = email;
+  progress = loadProgress();
+  if(token) localStorage.setItem(SESSION_KEY, JSON.stringify({ email, token }));
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  renderSidebar();
+  renderHome();
+}
+
+async function sendCode(email, isResend){
+  if(isSendingCode) return;
+  isSendingCode = true;
+  const btn = document.getElementById(isResend ? 'gate-resend' : 'gate-submit-email');
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  if(!isResend) btn.textContent = 'Envoi…';
+  showGateMsg('', '');
+  try {
+    const res = await fetch('/api/send-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if(res.status === 429){
+      showGateMsg('Un code a déjà été envoyé il y a moins de 30 secondes. Vérifie tes messages (et tes spams).', 'err');
+    } else if(!res.ok){
+      showGateMsg("Impossible d'envoyer le code pour le moment. Réessaie dans un instant.", 'err');
+    } else {
+      pendingEmail = email;
+      showCodeStep(email);
+      showGateMsg('Code envoyé — pense à vérifier tes spams si tu ne le vois pas.', '');
+    }
+  } catch(err){
+    console.error('sendCode error:', err);
+    showGateMsg('Connexion impossible. Vérifie ta connexion internet.', 'err');
+  } finally {
+    isSendingCode = false;
+    btn.disabled = false;
+    if(!isResend) btn.textContent = originalText;
+  }
+}
+
+async function verifyCode(email, code){
+  if(isVerifyingCode) return;
+  isVerifyingCode = true;
+  const btn = document.getElementById('gate-submit-code');
+  btn.disabled = true;
+  btn.textContent = 'Vérification…';
+  showGateMsg('', '');
+  try {
+    const res = await fetch('/api/verify-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code }),
+    });
+    if(res.status === 403){
+      showGateMsg("Cet accès a été bloqué. Contacte l'administrateur.", 'err');
+      showEmailStep();
+      return;
+    }
+    if(res.status === 400){
+      const { error } = await res.json().catch(() => ({}));
+      showGateMsg(
+        error === 'expired' ? 'Ce code a expiré, demande-en un nouveau.' :
+        error === 'wrong_code' ? 'Code incorrect, réessaie.' :
+        'Code invalide, demande-en un nouveau.', 'err'
+      );
+      return;
+    }
+    if(res.status === 429){
+      showGateMsg('Trop de tentatives. Demande un nouveau code.', 'err');
+      showEmailStep();
+      return;
+    }
+    if(!res.ok){
+      showGateMsg("Le service est momentanément indisponible. Réessaie dans un instant.", 'err');
+      return;
+    }
+    const { key, token } = await res.json();
+    try {
+      await finishUnlock(key, email, token);
+    } catch(decryptErr){
+      console.error('Erreur de déchiffrement du contenu:', decryptErr);
+      showGateMsg("Erreur au déchiffrement du contenu : " + (decryptErr && decryptErr.message ? decryptErr.message : decryptErr), 'err');
+    }
+  } catch(err){
+    console.error('verifyCode error:', err);
+    showGateMsg("Connexion impossible. Vérifie ta connexion internet et réessaie.", 'err');
+  } finally {
+    isVerifyingCode = false;
+    btn.disabled = false;
+    btn.textContent = 'Vérifier le code';
+  }
+}
+
+async function resumeSession(email, token){
+  try {
+    const res = await fetch('/api/resume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, token }),
+    });
+    if(!res.ok){
+      localStorage.removeItem(SESSION_KEY);
+      if(res.status === 403) showGateMsg("Cet accès a été bloqué. Contacte l'administrateur.", 'err');
+      showEmailStep();
+      return;
+    }
+    const { key } = await res.json();
+    try {
+      await finishUnlock(key, email, null);
+    } catch(decryptErr){
+      console.error('Erreur de déchiffrement (resume):', decryptErr);
+      localStorage.removeItem(SESSION_KEY);
+      showEmailStep();
+    }
+  } catch(err){
+    console.error('resumeSession error:', err);
+    showEmailStep();
+  }
+}
+
+document.getElementById('gate-form-email').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const email = document.getElementById('gate-email').value.trim().toLowerCase();
+  if(!email) return;
+  sendCode(email, false);
+});
+
+document.getElementById('gate-form-code').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const code = document.getElementById('gate-code').value.trim();
+  if(!code || !pendingEmail) return;
+  verifyCode(pendingEmail, code);
+});
+
+document.getElementById('gate-resend').addEventListener('click', () => {
+  if(pendingEmail) sendCode(pendingEmail, true);
+});
+
+document.getElementById('gate-change-email').addEventListener('click', () => {
+  pendingEmail = null;
+  showGateMsg('', '');
+  showEmailStep();
+});
+
+(function initGate(){
+  try {
+    const saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+    if(saved && saved.email && saved.token){
+      showGateMsg('Reconnexion…', '');
+      resumeSession(saved.email, saved.token);
+    }
+  } catch(e){}
+})();
+</script>
+</body>
+</html>

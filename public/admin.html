@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M2 GRAF — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#14213D;--teal:#2FA98C;--paper:#F6F4EF;--ink:#22262B;--muted:#6B7480;--line:#DEDACD;--red:#B3432B;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);}
+h1{font-family:'Source Serif 4',serif;color:var(--navy);}
+#gate{min-height:100vh;display:flex;align-items:center;justify-content:center;}
+#gate-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:36px;width:340px;text-align:center;}
+#gate-card input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:8px;font-size:14px;margin:16px 0;}
+#gate-card button{width:100%;background:var(--navy);color:#fff;border:none;padding:12px;border-radius:8px;font-weight:600;cursor:pointer;}
+#err{color:var(--red);font-size:13px;margin-top:10px;}
+#dash{display:none;max-width:1000px;margin:0 auto;padding:40px 24px;}
+.kpis{display:flex;gap:14px;margin-bottom:28px;flex-wrap:wrap;}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 22px;flex:1;min-width:140px;}
+.kpi .n{font-family:'Source Serif 4',serif;font-size:28px;color:var(--navy);}
+.kpi .l{font-size:12.5px;color:var(--muted);}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;border:1px solid var(--line);}
+th,td{padding:10px 14px;text-align:left;font-size:13.5px;border-bottom:1px solid var(--line);}
+th{background:var(--navy);color:#fff;font-weight:600;}
+tr.flag{background:#FBEAE5;}
+tr.blocked{opacity:0.5;}
+button.act{padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:12.5px;}
+button.act:hover{border-color:var(--teal);}
+#toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+#toolbar button{background:var(--navy);color:#fff;border:none;padding:9px 16px;border-radius:8px;font-size:13px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div id="gate-card">
+    <h1>Console admin</h1>
+    <p style="color:var(--muted);font-size:13.5px;">M2 GRAF</p>
+    <input type="password" id="admin-key-input" placeholder="Clé admin">
+    <button id="admin-submit">Entrer</button>
+    <div id="err"></div>
+  </div>
+</div>
+
+<div id="dash">
+  <div id="toolbar">
+    <h1 style="margin:0;font-size:24px;">Comptes étudiants</h1>
+    <button id="export-csv">Exporter en CSV</button>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <table>
+    <thead><tr><th>E-mail</th><th>Ouvertures</th><th>Première visite</th><th>Dernière visite</th><th>Statut</th><th></th></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<script>
+let ADMIN_KEY = '';
+let RECORDS = [];
+
+document.getElementById('admin-submit').addEventListener('click', load);
+document.getElementById('admin-key-input').addEventListener('keydown', (e) => { if(e.key === 'Enter') load(); });
+
+async function load(){
+  ADMIN_KEY = document.getElementById('admin-key-input').value.trim();
+  const err = document.getElementById('err');
+  err.textContent = '';
+  try {
+    const res = await fetch('/api/admin', { headers: { 'x-admin-key': ADMIN_KEY } });
+    if(res.status === 401){ err.textContent = 'Clé admin incorrecte.'; return; }
+    if(!res.ok){ err.textContent = 'Erreur serveur.'; return; }
+    const data = await res.json();
+    RECORDS = data.records || [];
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('dash').style.display = 'block';
+    render();
+  } catch(e){
+    err.textContent = 'Connexion impossible.';
+  }
+}
+
+function render(){
+  const total = RECORDS.length;
+  const totalOpens = RECORDS.reduce((a,r) => a + (r.opens||0), 0);
+  const flagged = RECORDS.filter(r => (r.opens||0) > 60).length;
+  const blocked = RECORDS.filter(r => r.blocked).length;
+  document.getElementById('kpis').innerHTML =
+    '<div class="kpi"><div class="n">'+total+'</div><div class="l">Comptes</div></div>' +
+    '<div class="kpi"><div class="n">'+totalOpens+'</div><div class="l">Ouvertures totales</div></div>' +
+    '<div class="kpi"><div class="n">'+flagged+'</div><div class="l">Signalés (&gt;60 ouvertures)</div></div>' +
+    '<div class="kpi"><div class="n">'+blocked+'</div><div class="l">Bloqués</div></div>';
+
+  document.getElementById('tbody').innerHTML = RECORDS.map(r => {
+    const flag = (r.opens||0) > 60;
+    return '<tr class="'+(r.blocked?'blocked':(flag?'flag':''))+'">' +
+      '<td>'+esc(r.email)+'</td>' +
+      '<td>'+(r.opens||0)+'</td>' +
+      '<td>'+fmtDate(r.firstSeen)+'</td>' +
+      '<td>'+fmtDate(r.lastSeen)+'</td>' +
+      '<td>'+(r.blocked ? 'Bloqué' : 'Actif')+'</td>' +
+      '<td><button class="act" data-email="'+esc(r.email)+'" data-action="'+(r.blocked?'unblock':'block')+'">'+(r.blocked?'Débloquer':'Bloquer')+'</button></td>' +
+    '</tr>';
+  }).join('');
+
+  document.querySelectorAll('.act').forEach(b => b.addEventListener('click', () => toggleBlock(b.dataset.email, b.dataset.action)));
+}
+
+async function toggleBlock(email, action){
+  await fetch('/api/admin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+    body: JSON.stringify({ email, action }),
+  });
+  load();
+}
+
+document.getElementById('export-csv').addEventListener('click', () => {
+  const rows = [['email','opens','firstSeen','lastSeen','blocked']];
+  RECORDS.forEach(r => rows.push([r.email, r.opens||0, r.firstSeen||'', r.lastSeen||'', r.blocked?'oui':'non']));
+  const csv = rows.map(row => row.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'm2graf-comptes.csv'; a.click();
+  URL.revokeObjectURL(url);
+});
+
+function fmtDate(iso){ if(!iso) return '—'; const d = new Date(iso); return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>

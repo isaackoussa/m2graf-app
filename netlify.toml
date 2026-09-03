@@ -1,0 +1,38 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/send-code"
+  to = "/.netlify/functions/send-code"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/verify-code"
+  to = "/.netlify/functions/verify-code"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/resume"
+  to = "/.netlify/functions/resume"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/admin"
+  to = "/.netlify/functions/admin"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/summarize-doc"
+  to = "/.netlify/functions/summarize-doc"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/app.enc"
+  [headers.values]
+    Cache-Control = "no-store"
