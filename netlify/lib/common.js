@@ -40,11 +40,27 @@ function cleanMaster(m) {
   return MASTERS.includes(m) ? m : null;
 }
 
-// Les comptes créés avant l'arrivée du M1 n'ont pas de champ "masters" : ils étaient tous en M2.
-function studentMasters(student) {
-  if (!student || !Array.isArray(student.masters)) return ['M2'];
-  const list = student.masters.map(cleanMaster).filter(Boolean);
-  return list.length ? list : ['M2'];
+// App unique : chaque compte a accès aux deux formations (M1 et M2).
+function studentMasters() {
+  return MASTERS.slice();
+}
+
+// Formation principale = celle choisie à l'inscription (ouverte par défaut).
+// Les comptes créés avant l'arrivée du M1 étaient tous en M2.
+function principalMaster(student) {
+  if (student && cleanMaster(student.principal)) return cleanMaster(student.principal);
+  if (student && Array.isArray(student.masters) && cleanMaster(student.masters[0])) return cleanMaster(student.masters[0]);
+  return 'M2';
+}
+
+// Informations de profil renvoyées à l'app (jamais le statut de blocage ni d'autres comptes)
+function profileOf(student) {
+  return {
+    email: student.email,
+    principal: principalMaster(student),
+    firstSeen: student.firstSeen || null,
+    opens: student.opens || 0,
+  };
 }
 
 const KEY_ENV = { M1: 'APP_KEY_M1', M2: 'APP_KEY' };
@@ -84,6 +100,6 @@ function isAdmin(event) {
 
 module.exports = {
   blobStore, httpMethod, rawBody, headerValue, json,
-  EMAIL_RE, SESSION_MAX_AGE_MS, MASTERS, cleanMaster, studentMasters, keysFor,
+  EMAIL_RE, SESSION_MAX_AGE_MS, MASTERS, cleanMaster, studentMasters, principalMaster, profileOf, keysFor,
   checkSession, isAdmin,
 };

@@ -1,6 +1,6 @@
 // Banque de fichiers partagés (annales, photos d'examens, TD, supports…)
-// Chaque fichier est rattaché à une formation (M1 ou M2) et n'est visible que
-// des étudiants inscrits à cette formation.
+// Chaque fichier est rattaché à une formation (M1 ou M2) ; l'app les range par Master.
+// Tous les comptes ont accès aux deux formations.
 //
 //   GET    /api/files                → liste des fichiers visibles
 //   GET    /api/files?id=…           → contenu du fichier (binaire)

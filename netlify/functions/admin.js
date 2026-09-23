@@ -51,18 +51,18 @@ exports.handler = async (event) => {
     try { body = JSON.parse(rawBody(event)); }
     catch (e) { return { statusCode: 400, body: 'bad request' }; }
 
-    const { email, action, masters } = body;
-    if (!email || !['block', 'unblock', 'set_masters'].includes(action)) {
+    const { email, action, master } = body;
+    if (!email || !['block', 'unblock', 'set_principal'].includes(action)) {
       return { statusCode: 400, body: JSON.stringify({ error: 'bad_request' }) };
     }
     const key = email.trim().toLowerCase();
     let record = await store.get(key, { type: 'json' });
     if (!record) return { statusCode: 404, body: JSON.stringify({ error: 'not_found' }) };
-    if (action === 'set_masters') {
-      // Formations accessibles au compte : ['M1'], ['M2'] ou ['M1','M2']
-      const list = Array.isArray(masters) ? [...new Set(masters.map(m => String(m).toUpperCase()))].filter(m => m === 'M1' || m === 'M2') : [];
-      if (!list.length) return { statusCode: 400, body: JSON.stringify({ error: 'bad_masters' }) };
-      record.masters = list.sort();
+    if (action === 'set_principal') {
+      // Formation ouverte par défaut (chaque compte a accès aux deux)
+      const m = String(master || '').toUpperCase();
+      if (m !== 'M1' && m !== 'M2') return { statusCode: 400, body: JSON.stringify({ error: 'bad_master' }) };
+      record.principal = m;
     } else {
       record.blocked = action === 'block';
     }

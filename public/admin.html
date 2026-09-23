@@ -53,13 +53,13 @@ a.lnk{color:var(--navy);}
   </div>
   <div class="kpis" id="kpis"></div>
   <table>
-    <thead><tr><th>E-mail</th><th>Formation</th><th>Ouvertures</th><th>Première visite</th><th>Dernière visite</th><th>Statut</th><th></th></tr></thead>
+    <thead><tr><th>E-mail</th><th>Formation principale</th><th>Ouvertures</th><th>Première visite</th><th>Dernière visite</th><th>Statut</th><th></th></tr></thead>
     <tbody id="tbody"></tbody>
   </table>
 
   <h2>Fichiers partagés (annales, photos d'examens…)</h2>
   <table>
-    <thead><tr><th>Titre</th><th>Formation</th><th>Matière</th><th>Catégorie</th><th>Déposé par</th><th>Date</th><th></th></tr></thead>
+    <thead><tr><th>Titre</th><th>Formation principale</th><th>Matière</th><th>Catégorie</th><th>Déposé par</th><th>Date</th><th></th></tr></thead>
     <tbody id="files-body"><tr><td colspan="7">Chargement…</td></tr></tbody>
   </table>
 </div>
@@ -114,23 +114,27 @@ function render(){
   }).join('');
 
   document.querySelectorAll('.act').forEach(b => b.addEventListener('click', () => toggleBlock(b.dataset.email, b.dataset.action)));
-  document.querySelectorAll('select.mst').forEach(sel => sel.addEventListener('change', () => setMasters(sel.dataset.email, sel.value.split('+'))));
+  document.querySelectorAll('select.mst').forEach(sel => sel.addEventListener('change', () => setPrincipal(sel.dataset.email, sel.value)));
   loadFiles();
 }
 
-// Comptes créés avant l'arrivée du Master 1 : pas de champ masters → M2
-function mastersOf(r){ return (Array.isArray(r.masters) && r.masters.length ? r.masters.slice().sort() : ['M2']).join('+'); }
+// Chaque compte a accès aux deux Masters ; la formation principale est celle ouverte par défaut.
+// Comptes créés avant l'arrivée du Master 1 : M2.
+function mastersOf(r){
+  if (r.principal === 'M1' || r.principal === 'M2') return r.principal;
+  return Array.isArray(r.masters) && r.masters[0] === 'M1' ? 'M1' : 'M2';
+}
 function masterSelect(r){
   const cur = mastersOf(r);
   return '<select class="mst" data-email="'+esc(r.email)+'">' +
-    ['M1','M2','M1+M2'].map(v => '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+(v==='M1+M2'?'M1 + M2':v)+'</option>').join('') +
+    ['M1','M2'].map(v => '<option value="'+v+'"'+(v===cur?' selected':'')+'>Master '+v.slice(1)+'</option>').join('') +
   '</select>';
 }
-async function setMasters(email, masters){
+async function setPrincipal(email, master){
   await fetch('/api/admin', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
-    body: JSON.stringify({ email, action: 'set_masters', masters }),
+    body: JSON.stringify({ email, action: 'set_principal', master }),
   });
   load();
 }

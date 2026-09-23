@@ -1,4 +1,4 @@
-const { blobStore, httpMethod, rawBody, studentMasters, keysFor } = require('../lib/common');
+const { blobStore, httpMethod, rawBody, cleanMaster, studentMasters, profileOf, keysFor } = require('../lib/common');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SESSION_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000; // 90 jours
@@ -11,9 +11,10 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: 'config' }) };
   }
 
-  let email, token;
+  // action : absente (reprise de session), 'logout' (déconnexion) ou 'set_principal' (formation par défaut)
+  let email, token, action, master;
   try {
-    ({ email, token } = JSON.parse(rawBody(event)));
+    ({ email, token, action, master } = JSON.parse(rawBody(event)));
   } catch (e) {
     return { statusCode: 400, body: JSON.stringify({ error: 'bad_request' }) };
   }
@@ -32,6 +33,12 @@ exports.handler = async (event) => {
     return { statusCode: 401, body: JSON.stringify({ error: 'expired_session' }) };
   }
 
+  if (action === 'logout') {
+    // Le jeton de cet appareil est supprimé : il faudra un nouveau code pour revenir
+    await sessionsStore.delete(token);
+    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: true }) };
+  }
+
   const studentsStore = blobStore('m2graf-students');
   let student = await studentsStore.get(email, { type: 'json' });
   const now = new Date().toISOString();
@@ -41,8 +48,13 @@ exports.handler = async (event) => {
   if (student.blocked) {
     return { statusCode: 403, body: JSON.stringify({ error: 'blocked' }) };
   }
+  if (action === 'set_principal') {
+    if (!cleanMaster(master)) return { statusCode: 400, body: JSON.stringify({ error: 'bad_master' }) };
+    student.principal = cleanMaster(master);
+    await studentsStore.set(email, JSON.stringify(student));
+    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile: profileOf(student) }) };
+  }
   const masters = studentMasters(student);
-  if (!Array.isArray(student.masters)) student.masters = masters;
   const { keys, missing } = keysFor(masters);
   if (!Object.keys(keys).length) {
     return { statusCode: 500, body: JSON.stringify({ error: 'config: ' + missing.join(', ') + ' manquant' }) };
@@ -54,6 +66,6 @@ exports.handler = async (event) => {
   return {
     statusCode: 200,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ keys, masters }),
+    body: JSON.stringify({ keys, masters, profile: profileOf(student) }),
   };
 };

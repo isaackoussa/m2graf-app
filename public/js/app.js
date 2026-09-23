@@ -7,6 +7,7 @@ let currentToken = null;
 let currentMaster = 'M2';
 const CONTENT = {};       // { M1: { items, glossary }, M2: {…} } — contenus déchiffrés
 let AVAILABLE = [];       // formations accessibles au compte
+let PROFILE = null;       // { email, principal, firstSeen, opens }
 
 const MASTER_INFO = {
   M1: { label: 'Master 1', short: 'M1', semestres: ['S7', 'S8'], enc: '/app-m1.enc' },
@@ -609,9 +610,11 @@ function openSection(view, linkId, render){
 openSection('dictionnaire', 'dictionnaire-link', () => renderDictionnaire(''));
 openSection('documents', 'documents-link', renderDocuments);
 openSection('fichiers', 'fichiers-link', renderFichiers);
+openSection('profil', 'profil-link', renderProfil);
+document.getElementById('topbar-profile').addEventListener('click', () => document.getElementById('profil-link').click());
 
 function setActiveLink(id){
-  ['dictionnaire-link', 'documents-link', 'fichiers-link'].forEach(l => document.getElementById(l).classList.toggle('active', l === id));
+  ['profil-link', 'dictionnaire-link', 'documents-link', 'fichiers-link'].forEach(l => document.getElementById(l).classList.toggle('active', l === id));
 }
 
 /* ---------------- Mes documents (résumé IA) ---------------- */
@@ -952,6 +955,89 @@ async function submitFiles(){
   renderFileList();
 }
 
+/* ---------------- Mon profil ---------------- */
+function initialOf(email){ return (email || '?').trim().charAt(0).toUpperCase() || '?'; }
+
+function updateProfileChips(){
+  const ini = initialOf(currentEmail);
+  document.getElementById('side-avatar').textContent = ini;
+  document.getElementById('topbar-profile').textContent = ini;
+  document.getElementById('side-email').textContent = currentEmail || '';
+}
+
+function progressOf(m){
+  const key = (m === 'M2' ? 'm2graf_progress_' : 'mastergraf_' + m.toLowerCase() + '_progress_') + currentEmail;
+  let p = {};
+  try { p = JSON.parse(localStorage.getItem(key)) || {}; } catch(e){}
+  const items = CONTENT[m] ? CONTENT[m].items : [];
+  const read = items.filter(x => p[x.id] && p[x.id].read).length;
+  const quizzed = items.filter(x => p[x.id] && p[x.id].bestScore !== undefined);
+  const avg = quizzed.length ? Math.round(quizzed.reduce((a, x) => a + p[x.id].bestScore / p[x.id].total, 0) / quizzed.length * 100) : null;
+  return { read, total: items.length, avg };
+}
+
+function renderProfil(){
+  const pr = PROFILE || { email: currentEmail };
+  const principal = pr.principal || currentMaster;
+  let html = '<div class="home-hero"><div class="kicker">Compte</div><h2>Mon profil</h2></div>';
+  html += '<div class="profile-card"><span class="avatar">' + esc(initialOf(currentEmail)) + '</span><div class="who">' +
+    '<div class="em">' + esc(currentEmail) + '</div>' +
+    '<div class="meta">Formation principale : <b>' + MASTER_INFO[principal].label + ' GRAF</b>' +
+      (pr.firstSeen ? '<br>Inscrit depuis le ' + new Date(pr.firstSeen).toLocaleDateString('fr-FR') : '') +
+      (pr.opens ? ' · ' + pr.opens + ' connexion' + (pr.opens > 1 ? 's' : '') : '') + '</div>' +
+  '</div></div>';
+
+  html += '<div class="profile-section"><h3>Ma progression</h3><p class="hint">Matières marquées comme lues et score moyen aux quiz, sur cet appareil.</p>' +
+    AVAILABLE.map(m => { const g = progressOf(m); return '<div class="prog-row"><span class="pl">' + MASTER_INFO[m].label + '</span>' +
+      '<span class="pt"><i style="width:' + (g.total ? g.read / g.total * 100 : 0) + '%"></i></span>' +
+      '<span class="pv">' + g.read + '/' + g.total + ' lues' + (g.avg !== null ? ' · quiz ' + g.avg + ' %' : '') + '</span></div>'; }).join('') +
+  '</div>';
+
+  html += '<div class="profile-section"><h3>Formation principale</h3><p class="hint">Tu as accès aux deux Masters. La formation principale est celle qui s\'ouvre à la connexion.</p>' +
+    '<div class="seg">' + ['M1', 'M2'].map(m => '<button data-principal="' + m + '" class="' + (m === principal ? 'active' : '') + '">' + MASTER_INFO[m].label + '</button>').join('') + '</div>' +
+    '<div id="profile-msg"></div></div>';
+
+  html += '<div class="profile-section"><h3>Se déconnecter</h3><p class="hint">Ferme ta session sur cet appareil. Pour revenir, il faudra demander un nouveau code par e-mail. Ta progression reste enregistrée sur cet appareil.</p>' +
+    '<button class="btn-danger" id="logout-btn">Se déconnecter</button></div>';
+  root.innerHTML = html;
+
+  root.querySelectorAll('[data-principal]').forEach(b => b.addEventListener('click', () => setPrincipal(b.dataset.principal)));
+  document.getElementById('logout-btn').addEventListener('click', logout);
+}
+
+async function setPrincipal(m){
+  const msg = document.getElementById('profile-msg');
+  try {
+    const res = await fetch('/api/resume', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: currentEmail, token: currentToken, action: 'set_principal', master: m }),
+    });
+    if(!res.ok) throw new Error(res.status);
+    const { profile } = await res.json();
+    PROFILE = Object.assign({}, PROFILE, profile);
+    try { localStorage.setItem('mastergraf_master_' + currentEmail, m); } catch(e){}
+    if(CONTENT[m] && m !== currentMaster){ setMaster(m); renderSidebar(); }
+    renderProfil();
+    document.getElementById('profile-msg').textContent = MASTER_INFO[m].label + ' est maintenant ta formation principale.';
+  } catch(e){
+    if(msg){ msg.style.color = 'var(--red)'; msg.textContent = 'Modification impossible pour le moment.'; }
+  }
+}
+
+async function logout(){
+  if(!confirm('Se déconnecter de MasterGraf sur cet appareil ?')) return;
+  const btn = document.getElementById('logout-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Déconnexion…'; }
+  try {
+    await fetch('/api/resume', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: currentEmail, token: currentToken, action: 'logout' }),
+    });
+  } catch(e){}
+  try { localStorage.removeItem(SESSION_KEY); } catch(e){}
+  location.reload();
+}
+
 /* ---------------- Dictionnaire ---------------- */
 function renderDictionnaire(query){
   const q = (query||'').trim().toLowerCase();
@@ -1049,8 +1135,10 @@ let isSendingCode = false;
 let isVerifyingCode = false;
 
 // keys = { M1?: hex, M2?: hex } ; masters = formations du compte ; preferred = formation à afficher
-async function finishUnlock(keys, masters, email, token, preferred){
+async function finishUnlock(keys, masters, email, token, preferred, profile){
   currentEmail = email;
+  PROFILE = profile || { email };
+  updateProfileChips();
   if(token){ currentToken = token; try { localStorage.setItem(SESSION_KEY, JSON.stringify({ email, token })); } catch(e){} }
   AVAILABLE = (masters && masters.length ? masters : Object.keys(keys)).filter(m => keys[m]);
   const results = await Promise.allSettled(AVAILABLE.map(async m => { CONTENT[m] = await decryptContent(MASTER_INFO[m].enc, keys[m]); }));
@@ -1059,15 +1147,15 @@ async function finishUnlock(keys, masters, email, token, preferred){
   if(!AVAILABLE.length) throw (failed[0] && failed[0].reason) || new Error('aucun contenu');
   let saved = null;
   try { saved = localStorage.getItem('mastergraf_master_' + email); } catch(e){}
-  const pick = [preferred, saved, AVAILABLE[0]].find(m => m && CONTENT[m]);
+  const pick = [preferred, saved, PROFILE.principal, AVAILABLE[0]].find(m => m && CONTENT[m]);
   setMaster(pick);
   document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   renderSidebar();
   renderHome();
   if(preferred && !CONTENT[preferred]){
-    root.insertAdjacentHTML('afterbegin', '<div class="viz-result" style="background:#FBEAE5;color:var(--red);margin-bottom:24px;">Ton compte est inscrit en ' +
-      AVAILABLE.map(m => MASTER_INFO[m].label).join(' + ') + '. Pour accéder au ' + MASTER_INFO[preferred].label + ', demande à l\'administrateur de modifier ta formation.</div>');
+    root.insertAdjacentHTML('afterbegin', '<div class="viz-result" style="background:#FBEAE5;color:var(--red);margin-bottom:24px;">Le contenu du ' +
+      MASTER_INFO[preferred].label + ' est momentanément indisponible. Réessaie plus tard ou contacte l\'administrateur.</div>');
   }
 }
 
@@ -1146,9 +1234,9 @@ async function verifyCode(email, code){
       showGateMsg("Le service est momentanément indisponible. Réessaie dans un instant.", 'err');
       return;
     }
-    const { keys, masters, token } = await res.json();
+    const { keys, masters, token, profile } = await res.json();
     try {
-      await finishUnlock(keys || {}, masters, email, token, pendingMaster);
+      await finishUnlock(keys || {}, masters, email, token, pendingMaster, profile);
     } catch(decryptErr){
       console.error('Erreur de déchiffrement du contenu:', decryptErr);
       showGateMsg("Erreur au déchiffrement du contenu : " + (decryptErr && decryptErr.message ? decryptErr.message : decryptErr), 'err');
@@ -1177,10 +1265,10 @@ async function resumeSession(email, token){
       showEmailStep();
       return;
     }
-    const { keys, masters } = await res.json();
+    const { keys, masters, profile } = await res.json();
     currentToken = token;
     try {
-      await finishUnlock(keys || {}, masters, email, null, null);
+      await finishUnlock(keys || {}, masters, email, null, null, profile);
     } catch(decryptErr){
       console.error('Erreur de déchiffrement (resume):', decryptErr);
       try { localStorage.removeItem(SESSION_KEY); } catch(e){}

@@ -9,23 +9,26 @@ MasterGraf couvre deux formations :
 
 Les fiches, exercices, quiz et le dictionnaire sont chiffrés (AES-256-GCM) et ne
 sont déchiffrés, dans le navigateur, qu'après vérification par un code à 6
-chiffres envoyé par e-mail. Le serveur ne transmet que la ou les clés des
-formations auxquelles l'étudiant est inscrit.
+chiffres envoyé par e-mail. Chaque compte reçoit les deux clés : l'app est
+unique et donne accès au Master 1 et au Master 2.
 
 ## Nouveautés
 
-- **Choix de la formation à l'inscription** (Master 1 ou Master 2) : le compte
-  n'a accès qu'à sa formation. Les comptes existants restent en Master 2. Dans
-  la console admin, une colonne « Formation » permet de passer un compte en
-  M1, M2 ou M1 + M2 (un sélecteur apparaît alors dans l'app).
+- **Une seule app pour les deux Masters** : tout compte a accès au M1 et au
+  M2 (boutons « Master 1 / Master 2 » en haut du menu). À l'inscription,
+  l'étudiant choisit sa **formation principale**, celle qui s'ouvre par
+  défaut ; il peut la changer dans « Mon profil », et l'admin aussi dans la
+  colonne « Formation principale ». Les comptes existants sont en M2.
+- **Mon profil** : e-mail, date d'inscription, progression par Master,
+  formation principale et bouton **Se déconnecter** (le jeton de l'appareil
+  est supprimé côté serveur).
 - **Onglet « Graphiques »** : graphiques interactifs avec curseurs et détail
   du calcul pas à pas (M1 et M2) — code dans `public/js/visuals.js`.
 - **Code en Python, R, Excel, VBA (et SAS)** pour chaque matière du M1, et
   Excel/VBA ajoutés aux générateurs du M2 (`public/js/generators-m*.js`).
 - **Annales & fichiers partagés** : les étudiants déposent photos d'examens,
-  PDF, Word, Excel (4 Mo max, photos compressées automatiquement). Visibles
-  par les étudiants de la même formation ; seul l'auteur (ou l'admin) peut
-  supprimer. Fonction `netlify/functions/files.js`, stockage Netlify Blobs.
+  PDF, Word, Excel (4 Mo max, photos compressées automatiquement), rangés par
+  Master ; seul l'auteur (ou l'admin) peut supprimer. Fonction `netlify/functions/files.js`, stockage Netlify Blobs.
 
 ## Fichiers sensibles — à NE JAMAIS mettre sur GitHub public
 
@@ -68,8 +71,8 @@ l'assistant IA de SMC Lab — tu peux réutiliser la même clé).
 3. Dans Netlify → Site settings → Environment variables, ajoute :
    - `APP_KEY` = contenu de APP_KEY.txt (ne PAS cocher "secret", la fonction
      doit pouvoir la lire au runtime)
-   - `APP_KEY_M1` = contenu de APP_KEY_M1.txt (même règle) — sans elle, les
-     comptes Master 1 ne peuvent pas entrer (le Master 2 continue de marcher)
+   - `APP_KEY_M1` = contenu de APP_KEY_M1.txt (même règle) — sans elle, seul
+     le Master 2 s'affiche
    - `ADMIN_KEY` = contenu de ADMIN_KEY.txt
    - `VERIFY_MODE` = `on`
    - `BREVO_API_KEY` = ta clé API Brevo
