@@ -7,6 +7,7 @@ let currentToken = null;
 let currentMaster = 'M2';
 const CONTENT = {};       // { M1: { items, glossary }, M2: {…} } — contenus déchiffrés
 let AVAILABLE = [];       // formations accessibles au compte
+let PROFILE = null;       // { email, principal, firstSeen, opens }
 
 const MASTER_INFO = {
   M1: { label: 'Master 1', short: 'M1', semestres: ['S7', 'S8'], enc: '/app-m1.enc' },
@@ -16,7 +17,10 @@ const LANG_LABELS = { python: 'Python', r: 'R', excel: 'Excel', vba: 'VBA', sas:
 const LANG_ORDER = ['python', 'r', 'excel', 'vba', 'sas'];
 
 function GENS(){ return (currentMaster === 'M1' ? window.GENERATORS_M1 : window.GENERATORS_M2) || {}; }
-function VIZ(id){ return ((window.VISUALS || {})[currentMaster] || {})[id] || []; }
+// Graphiques d'une matière : [{ v: visualisation, s: index de la section après laquelle l'afficher (null = fin du cours) }]
+function VIZ(id){
+  return (((window.VISUALS || {})[currentMaster] || {})[id] || []).map(e => Array.isArray(e) ? { v: e[0], s: e[1] } : { v: e, s: null });
+}
 function semLabel(s){ return 'Semestre ' + String(s).replace(/^S/, ''); }
 
 function loadProgress(){
@@ -172,7 +176,6 @@ function hasCode(m){ return m.code && Object.keys(m.code).length > 0; }
 function renderMatiere(){
   const m = DATA.find(x => x.id === state.matiereId);
   const isRead = progress[m.id] && progress[m.id].read;
-  const nv = VIZ(m.id).length;
   const gen = GENS()[m.id];
   let html = (m.ue ? '<div class="mat-ue">UE — ' + esc(m.ue) + '</div>' : '') +
     '<div class="mat-title-row"><h2>' + esc(m.titre) + '</h2>' +
@@ -181,7 +184,6 @@ function renderMatiere(){
     (m.credits ? '<div class="mat-meta">' + m.credits + ' crédits · ' + semLabel(m.semestre) + '</div>' : '') +
     '<div class="tabs">' +
       '<button class="tab-btn' + (state.tab==='cours'?' active':'') + '" data-tab="cours">Cours</button>' +
-      (nv ? '<button class="tab-btn' + (state.tab==='graphiques'?' active':'') + '" data-tab="graphiques">Graphiques (' + nv + ')</button>' : '') +
       '<button class="tab-btn' + (state.tab==='exercices'?' active':'') + '" data-tab="exercices">Exercices (' + m.exercices.length + (gen ? '+' : '') + ')</button>' +
       (hasCode(m) || (gen && gen.code) ? '<button class="tab-btn' + (state.tab==='code'?' active':'') + '" data-tab="code">Code</button>' : '') +
       '<button class="tab-btn' + (state.tab==='quiz'?' active':'') + '" data-tab="quiz">Quiz (' + m.quiz.length + (gen ? '+' : '') + ')</button>' +
@@ -196,10 +198,9 @@ function renderMatiere(){
   }));
 
   const tc = document.getElementById('tab-content');
-  if(state.tab === 'cours'){
+  if(state.tab === 'cours' || state.tab === 'graphiques'){
     tc.innerHTML = renderCours(m);
-  } else if(state.tab === 'graphiques'){
-    renderGraphiques(m, tc);
+    bindVizCards(m);
   } else if(state.tab === 'exercices'){
     tc.innerHTML = renderExercices(m);
     bindGeneratorExo(m);
@@ -228,26 +229,85 @@ function footerNav(m, suffix, tabFor){
   '</div>';
 }
 
+/* ---------------- Formules (KaTeX) et théorie ---------------- */
+// Rend une expression LaTeX ; repli en texte brut si KaTeX n'est pas chargé
+function tex(src, display){
+  if(window.katex){
+    try { return katex.renderToString(src, { displayMode: !!display, throwOnError: false, strict: 'ignore' }); } catch(e){}
+  }
+  return '<code class="tex">' + esc(src) + '</code>';
+}
+// Texte avec formules en ligne $…$ (contenus marqués math: true) ; une ligne « $$…$$ » est une formule centrée
+function rich(text, m){
+  text = String(text == null ? '' : text);
+  if(!m || !m.math || text.indexOf('$') < 0) return esc(text);
+  if(/^\$\$[\s\S]+\$\$$/.test(text.trim())) return tex(text.trim().slice(2, -2), true);
+  return text.split(/(\$[^$]+\$)/g).map(part =>
+    part.length > 2 && part[0] === '$' && part[part.length - 1] === '$' ? tex(part.slice(1, -1), false) : esc(part)).join('');
+}
+// Sur petit écran, coupe une formule en plusieurs lignes à ses séparateurs « , \\qquad » (hors accolades)
+function splitTex(t){
+  const parts = []; let depth = 0, cur = '';
+  for(let i = 0; i < t.length; i++){
+    const c = t[i];
+    if(c === '{') depth++;
+    else if(c === '}') depth--;
+    if(depth === 0 && t.startsWith('\\qquad', i) && cur.trim() && !/^\\qquad\s*$/.test(cur)){
+      parts.push(cur.replace(/,\s*$/, '')); cur = ''; i += 5; continue;
+    }
+    if(depth === 0 && t.startsWith(',', i) && /^,\s*\\quad(?!\w)/.test(t.slice(i))){
+      parts.push(cur); cur = ''; i = i + t.slice(i).match(/^,\s*\\quad/)[0].length - 1; continue;
+    }
+    cur += c;
+  }
+  if(cur.trim()) parts.push(cur);
+  return parts.map(x => x.trim()).filter(Boolean);
+}
+function formulaBlock(sec){
+  if(sec.tex){
+    let list = Array.isArray(sec.tex) ? sec.tex : [sec.tex];
+    if(window.innerWidth < 700) list = [].concat(...list.map(splitTex));
+    return '<div class="formule formule-tex">' + list.map(t => '<div class="fx">' + tex(t, true) + '</div>').join('') + '</div>';
+  }
+  // Formule en texte (contenu M2) : une relation par ligne pour qu'elle reste lisible sur mobile
+  return '<div class="formule">' + String(sec.formule).split(/\s+;\s+/).map(f => '<div class="fx-line">' + esc(f) + '</div>').join('') + '</div>';
+}
+function theorieBlock(t, m){
+  const line = x => /^\$\$[\s\S]+\$\$$/.test(String(x).trim()) ? '<div class="fx">' + rich(x, m) + '</div>' : '<p>' + rich(x, m) + '</p>';
+  return '<div class="theorie"><div class="th-head"><span class="th-type">' + esc(t.type || 'Théorème') + '</span>' +
+      (t.titre ? '<span class="th-titre">' + rich(t.titre, m) + '</span>' : '') + '</div>' +
+    '<div class="th-enonce">' + (t.enonce || []).map(line).join('') + '</div>' +
+    (t.preuve && t.preuve.length ? '<details class="th-preuve"><summary>' + esc(t.preuveTitre || 'Voir la démonstration') + '</summary>' +
+      '<ol>' + t.preuve.map(x => '<li>' + rich(x, m) + '</li>').join('') + '</ol><div class="qed">∎</div></details>' : '') +
+    (t.interpretation ? '<p class="th-interp"><b>À retenir :</b> ' + rich(t.interpretation, m) + '</p>' : '') +
+  '</div>';
+}
+
 function renderCours(m){
   let h = '';
   if(m.objectifs && m.objectifs.length){
     h += '<div class="objectifs"><h4>Objectifs pédagogiques</h4><ul>' +
-      m.objectifs.map(o => '<li>' + esc(o) + '</li>').join('') + '</ul></div>';
+      m.objectifs.map(o => '<li>' + rich(o, m) + '</li>').join('') + '</ul></div>';
   }
-  m.sections.forEach(sec => {
+  const viz = VIZ(m.id);
+  let k = 0;
+  const cards = s => viz.filter(e => e.s === s).map(e => vizCard(e.v, k++)).join('');
+  m.sections.forEach((sec, i) => {
     h += '<div class="section-block"><h3>' + esc(sec.titre) + '</h3>';
-    (sec.paragraphs||[]).forEach(p => h += '<p>' + esc(p) + '</p>');
-    if(sec.formule) h += '<div class="formule">' + esc(sec.formule) + '</div>';
-    if(sec.bullets) h += '<ul>' + sec.bullets.map(b => '<li>' + esc(b) + '</li>').join('') + '</ul>';
+    (sec.paragraphs||[]).forEach(p => h += '<p>' + rich(p, m) + '</p>');
+    if(sec.formule || sec.tex) h += formulaBlock(sec);
+    if(sec.codeLine) h += '<pre class="code-line"><code>' + esc(sec.codeLine) + '</code></pre>';
+    if(sec.bullets) h += '<ul>' + sec.bullets.map(b => '<li>' + rich(b, m) + '</li>').join('') + '</ul>';
+    (sec.theorie || []).forEach(t => h += theorieBlock(t, m));
     if(sec.exemple) h += '<div class="exemple"><h5>' + esc(sec.exemple.titre || 'Exemple de calcul') + '</h5><ol>' +
-      (sec.exemple.lignes || []).map(l => '<li>' + esc(l) + '</li>').join('') + '</ol></div>';
+      (sec.exemple.lignes || []).map(l => '<li>' + rich(l, m) + '</li>').join('') + '</ol></div>';
+    h += cards(i);
     h += '</div>';
   });
-  if(VIZ(m.id).length){
-    h += '<div class="gen-box"><div class="gen-head"><span class="gen-badge">Graphiques</span><span class="gen-title">Visualise les notions du cours</span></div>' +
-      '<p class="gen-desc">' + VIZ(m.id).map(v => esc(v.titre)).join(' · ') + '</p>' +
-      '<button class="btn-primary" id="goto-viz">Ouvrir les graphiques interactifs</button></div>';
-    setTimeout(() => { const b = document.getElementById('goto-viz'); if(b) b.addEventListener('click', () => { state.tab = 'graphiques'; renderMatiere(); }); });
+  // Graphiques sans section précise (ou section absente) : en fin de cours
+  const rest = viz.filter(e => e.s == null || e.s >= m.sections.length);
+  if(rest.length){
+    h += '<div class="section-block"><h3>Graphiques interactifs</h3>' + rest.map(e => vizCard(e.v, k++)).join('') + '</div>';
   }
   h += footerNav(m, 'cours', () => 'cours');
   return h;
@@ -260,23 +320,30 @@ function fmtParam(p, v){
   return Number(v).toLocaleString('fr-FR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
-function renderGraphiques(m, tc){
-  const list = VIZ(m.id);
-  vizUpdaters = [];
-  tc.innerHTML = '<p class="exo-intro">Déplace les curseurs : le graphique et le détail du calcul se mettent à jour. Survole ou touche le graphique pour lire les valeurs.</p>' +
-    list.map((v, i) => '<div class="viz-card" id="viz-' + i + '">' +
-      '<h3>' + esc(v.titre) + '</h3><p class="viz-exp">' + esc(v.explication) + '</p>' +
-      '<div class="viz-params">' + v.params.map(p =>
-        '<div><label for="viz-' + i + '-' + p.id + '"><span>' + esc(p.label) + '</span><b id="viz-' + i + '-' + p.id + '-v"></b></label>' +
-        '<input type="range" id="viz-' + i + '-' + p.id + '" min="' + p.min + '" max="' + p.max + '" step="' + p.step + '" value="' + p.value + '"></div>'
-      ).join('') + '</div>' +
-      '<div class="viz-chart"></div>' +
-      '<div class="viz-calc"><h5>Détail du calcul</h5><ol></ol></div>' +
-      '<div class="viz-result"></div>' +
-    '</div>').join('') + footerNav(m, 'viz', x => VIZ(x.id).length ? 'graphiques' : 'cours');
+function vizCard(v, i){
+  return '<div class="viz-card" id="viz-' + i + '">' +
+    '<div class="viz-kicker">Graphique interactif</div>' +
+    '<h3>' + esc(v.titre) + '</h3><p class="viz-exp">' + esc(v.explication) + '</p>' +
+    '<div class="viz-params">' + v.params.map(p =>
+      '<div><label for="viz-' + i + '-' + p.id + '"><span>' + esc(p.label) + '</span><b id="viz-' + i + '-' + p.id + '-v"></b></label>' +
+      '<input type="range" id="viz-' + i + '-' + p.id + '" min="' + p.min + '" max="' + p.max + '" step="' + p.step + '" value="' + p.value + '"></div>'
+    ).join('') + '</div>' +
+    '<div class="viz-chart"></div>' +
+    '<div class="viz-calc"><h5>Détail du calcul</h5><ol></ol></div>' +
+    '<div class="viz-result"></div>' +
+  '</div>';
+}
 
-  list.forEach((v, i) => {
+// Active les graphiques insérés dans le cours (même ordre que renderCours)
+function bindVizCards(m){
+  const viz = VIZ(m.id);
+  const ordered = [];
+  m.sections.forEach((_, i) => viz.filter(e => e.s === i).forEach(e => ordered.push(e.v)));
+  viz.filter(e => e.s == null || e.s >= m.sections.length).forEach(e => ordered.push(e.v));
+  vizUpdaters = [];
+  ordered.forEach((v, i) => {
     const card = document.getElementById('viz-' + i);
+    if(!card) return;
     const update = () => {
       const p = {};
       v.params.forEach(pp => {
@@ -311,7 +378,7 @@ window.addEventListener('resize', () => {
   clearTimeout(vizResizeTimer);
   vizResizeTimer = setTimeout(() => {
     lastVizWidth = window.innerWidth;
-    if(state.view === 'matiere' && state.tab === 'graphiques') vizUpdaters.forEach(u => u());
+    if(state.view === 'matiere' && state.tab === 'cours') vizUpdaters.forEach(u => u());
   }, 200);
 });
 
@@ -609,9 +676,11 @@ function openSection(view, linkId, render){
 openSection('dictionnaire', 'dictionnaire-link', () => renderDictionnaire(''));
 openSection('documents', 'documents-link', renderDocuments);
 openSection('fichiers', 'fichiers-link', renderFichiers);
+openSection('profil', 'profil-link', renderProfil);
+document.getElementById('topbar-profile').addEventListener('click', () => document.getElementById('profil-link').click());
 
 function setActiveLink(id){
-  ['dictionnaire-link', 'documents-link', 'fichiers-link'].forEach(l => document.getElementById(l).classList.toggle('active', l === id));
+  ['profil-link', 'dictionnaire-link', 'documents-link', 'fichiers-link'].forEach(l => document.getElementById(l).classList.toggle('active', l === id));
 }
 
 /* ---------------- Mes documents (résumé IA) ---------------- */
@@ -952,6 +1021,66 @@ async function submitFiles(){
   renderFileList();
 }
 
+/* ---------------- Mon profil ---------------- */
+function initialOf(email){ return (email || '?').trim().charAt(0).toUpperCase() || '?'; }
+
+function updateProfileChips(){
+  const ini = initialOf(currentEmail);
+  document.getElementById('side-avatar').textContent = ini;
+  document.getElementById('topbar-profile').textContent = ini;
+  document.getElementById('side-email').textContent = currentEmail || '';
+}
+
+function progressOf(m){
+  const key = (m === 'M2' ? 'm2graf_progress_' : 'mastergraf_' + m.toLowerCase() + '_progress_') + currentEmail;
+  let p = {};
+  try { p = JSON.parse(localStorage.getItem(key)) || {}; } catch(e){}
+  const items = CONTENT[m] ? CONTENT[m].items : [];
+  const read = items.filter(x => p[x.id] && p[x.id].read).length;
+  const quizzed = items.filter(x => p[x.id] && p[x.id].bestScore !== undefined);
+  const avg = quizzed.length ? Math.round(quizzed.reduce((a, x) => a + p[x.id].bestScore / p[x.id].total, 0) / quizzed.length * 100) : null;
+  return { read, total: items.length, avg };
+}
+
+function renderProfil(){
+  const pr = PROFILE || { email: currentEmail };
+  const principal = pr.principal || currentMaster;
+  let html = '<div class="home-hero"><div class="kicker">Compte</div><h2>Mon profil</h2></div>';
+  html += '<div class="profile-card"><span class="avatar">' + esc(initialOf(currentEmail)) + '</span><div class="who">' +
+    '<div class="em">' + esc(currentEmail) + '</div>' +
+    '<div class="meta">Ma formation : <b>' + MASTER_INFO[principal].label + ' GRAF</b>' +
+      (pr.firstSeen ? '<br>Inscrit depuis le ' + new Date(pr.firstSeen).toLocaleDateString('fr-FR') : '') +
+      (pr.opens ? ' · ' + pr.opens + ' connexion' + (pr.opens > 1 ? 's' : '') : '') + '</div>' +
+  '</div></div>';
+
+  const g = progressOf(principal);
+  html += '<div class="profile-section"><h3>Ma progression — ' + MASTER_INFO[principal].label + '</h3><p class="hint">Matières marquées comme lues et score moyen aux quiz, sur cet appareil.</p>' +
+    '<div class="prog-row"><span class="pl">' + MASTER_INFO[principal].label + '</span>' +
+      '<span class="pt"><i style="width:' + (g.total ? g.read / g.total * 100 : 0) + '%"></i></span>' +
+      '<span class="pv">' + g.read + '/' + g.total + ' lues' + (g.avg !== null ? ' · quiz ' + g.avg + ' %' : '') + '</span></div>' +
+  '</div>';
+
+  html += '<div class="profile-section"><h3>Se déconnecter</h3><p class="hint">Ferme ta session sur cet appareil. Pour revenir, il faudra demander un nouveau code par e-mail. Ta progression reste enregistrée sur cet appareil.</p>' +
+    '<button class="btn-danger" id="logout-btn">Se déconnecter</button></div>';
+  root.innerHTML = html;
+
+  document.getElementById('logout-btn').addEventListener('click', logout);
+}
+
+async function logout(){
+  if(!confirm('Se déconnecter de MasterGraf sur cet appareil ?')) return;
+  const btn = document.getElementById('logout-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Déconnexion…'; }
+  try {
+    await fetch('/api/resume', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: currentEmail, token: currentToken, action: 'logout' }),
+    });
+  } catch(e){}
+  try { localStorage.removeItem(SESSION_KEY); } catch(e){}
+  location.reload();
+}
+
 /* ---------------- Dictionnaire ---------------- */
 function renderDictionnaire(query){
   const q = (query||'').trim().toLowerCase();
@@ -1049,8 +1178,10 @@ let isSendingCode = false;
 let isVerifyingCode = false;
 
 // keys = { M1?: hex, M2?: hex } ; masters = formations du compte ; preferred = formation à afficher
-async function finishUnlock(keys, masters, email, token, preferred){
+async function finishUnlock(keys, masters, email, token, preferred, profile){
   currentEmail = email;
+  PROFILE = profile || { email };
+  updateProfileChips();
   if(token){ currentToken = token; try { localStorage.setItem(SESSION_KEY, JSON.stringify({ email, token })); } catch(e){} }
   AVAILABLE = (masters && masters.length ? masters : Object.keys(keys)).filter(m => keys[m]);
   const results = await Promise.allSettled(AVAILABLE.map(async m => { CONTENT[m] = await decryptContent(MASTER_INFO[m].enc, keys[m]); }));
@@ -1059,15 +1190,16 @@ async function finishUnlock(keys, masters, email, token, preferred){
   if(!AVAILABLE.length) throw (failed[0] && failed[0].reason) || new Error('aucun contenu');
   let saved = null;
   try { saved = localStorage.getItem('mastergraf_master_' + email); } catch(e){}
-  const pick = [preferred, saved, AVAILABLE[0]].find(m => m && CONTENT[m]);
+  // Priorité : choix fait à la connexion, puis formation principale du serveur (l'admin peut la changer), puis dernier choix de l'appareil
+  const pick = [preferred, PROFILE.principal, saved, AVAILABLE[0]].find(m => m && CONTENT[m]);
   setMaster(pick);
   document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   renderSidebar();
   renderHome();
   if(preferred && !CONTENT[preferred]){
-    root.insertAdjacentHTML('afterbegin', '<div class="viz-result" style="background:#FBEAE5;color:var(--red);margin-bottom:24px;">Ton compte est inscrit en ' +
-      AVAILABLE.map(m => MASTER_INFO[m].label).join(' + ') + '. Pour accéder au ' + MASTER_INFO[preferred].label + ', demande à l\'administrateur de modifier ta formation.</div>');
+    root.insertAdjacentHTML('afterbegin', '<div class="viz-result" style="background:#FBEAE5;color:var(--red);margin-bottom:24px;">Le contenu du ' +
+      MASTER_INFO[preferred].label + ' est momentanément indisponible. Réessaie plus tard ou contacte l\'administrateur.</div>');
   }
 }
 
@@ -1146,9 +1278,9 @@ async function verifyCode(email, code){
       showGateMsg("Le service est momentanément indisponible. Réessaie dans un instant.", 'err');
       return;
     }
-    const { keys, masters, token } = await res.json();
+    const { keys, masters, token, profile } = await res.json();
     try {
-      await finishUnlock(keys || {}, masters, email, token, pendingMaster);
+      await finishUnlock(keys || {}, masters, email, token, pendingMaster, profile);
     } catch(decryptErr){
       console.error('Erreur de déchiffrement du contenu:', decryptErr);
       showGateMsg("Erreur au déchiffrement du contenu : " + (decryptErr && decryptErr.message ? decryptErr.message : decryptErr), 'err');
@@ -1177,10 +1309,10 @@ async function resumeSession(email, token){
       showEmailStep();
       return;
     }
-    const { keys, masters } = await res.json();
+    const { keys, masters, profile } = await res.json();
     currentToken = token;
     try {
-      await finishUnlock(keys || {}, masters, email, null, null);
+      await finishUnlock(keys || {}, masters, email, null, null, profile);
     } catch(decryptErr){
       console.error('Erreur de déchiffrement (resume):', decryptErr);
       try { localStorage.removeItem(SESSION_KEY); } catch(e){}

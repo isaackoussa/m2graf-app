@@ -646,6 +646,251 @@
       },
     },
     // ---------------- M2 ----------------
+    acf: {
+      titre: "Autocorrélations (ACF) d'un AR(1)",
+      explication: "Pour un AR(1), l'autocorrélation théorique au retard h vaut φʰ : elle décroît géométriquement (ACF qui s'amortit, PACF coupée après 1). Les points montrent l'ACF estimée sur une série simulée ; hors de la bande ±1,96/√n, une autocorrélation est significative.",
+      params: [
+        { id: 'phi', label: 'Coefficient φ', min: -0.95, max: 0.95, step: 0.05, value: 0.7 },
+        { id: 'n', label: 'Longueur de la série', min: 50, max: 1000, step: 50, value: 200 },
+      ],
+      compute(p){
+        const g = N.rng(21), x = []; let v = 0;
+        for(let t = 0; t < p.n + 50; t++){ v = p.phi * v + g.z(); if(t >= 50) x.push(v); }
+        const m = x.reduce((a, b) => a + b, 0) / p.n, c0 = x.reduce((a, b) => a + (b - m) ** 2, 0);
+        const acf = h => { let s = 0; for(let t = 0; t < p.n - h; t++) s += (x[t] - m) * (x[t + h] - m); return s / c0; };
+        const hs = range(1, 15, 14), band = 1.96 / Math.sqrt(p.n);
+        return {
+          chart: { xlabel: 'Retard h', ylabel: 'ρ(h)', ymin: -1, ymax: 1, xfmt: v => String(Math.round(v)),
+            series: [{ name: 'ACF théorique φʰ', type: 'bar', points: hs.map(h => [h, Math.pow(p.phi, h)]) }, { name: 'ACF estimée', type: 'scatter', points: hs.map(h => [h, acf(h)]), slot: 1 }],
+            hlines: [{ y: band, label: '+1,96/√n' }, { y: -band, label: '−1,96/√n' }] },
+          calcul: [`ρ(1) = φ = ${f3(p.phi)} (estimé ${f3(acf(1))})`, `ρ(5) = φ⁵ = ${f3(Math.pow(p.phi, 5))} (estimé ${f3(acf(5))})`, `Bande de significativité : ±1,96/√${p.n} = ±${f3(band)}`],
+          resultat: `Dernier retard significatif (théorique) : h = ${hs.filter(h => Math.abs(Math.pow(p.phi, h)) > band).pop() || 0}`,
+        };
+      },
+    },
+    gev: {
+      titre: "Loi des valeurs extrêmes généralisée (GEV)",
+      explication: "Densité de la GEV standard selon l'indice de forme ξ, comparée à la loi de Gumbel (ξ = 0). Un ξ positif épaissit la queue droite : les maxima très élevés deviennent nettement plus probables.",
+      params: [{ id: 'xi', label: 'Indice de forme ξ', min: -0.5, max: 0.8, step: 0.05, value: 0.3 }],
+      compute(p){
+        const xi = p.xi;
+        const dens = (x, k) => {
+          if(Math.abs(k) < 1e-6){ const t = Math.exp(-x); return t * Math.exp(-t); }
+          const z = 1 + k * x; if(z <= 0) return 0;
+          const t = Math.pow(z, -1 / k); return Math.pow(z, -1 / k - 1) * Math.exp(-t);
+        };
+        const cdf = (x, k) => Math.abs(k) < 1e-6 ? Math.exp(-Math.exp(-x)) : (1 + k * x <= 0 ? (k > 0 ? 0 : 1) : Math.exp(-Math.pow(1 + k * x, -1 / k)));
+        const xs = range(-3, 8, 220);
+        const q = pr => Math.abs(xi) < 1e-6 ? -Math.log(-Math.log(pr)) : (Math.pow(-Math.log(pr), -xi) - 1) / xi;
+        return {
+          chart: { xlabel: 'x (maximum normalisé)', ylabel: 'Densité',
+            series: [{ name: `GEV ξ = ${f2(xi)}`, type: 'area', points: xs.map(x => [x, dens(x, xi)]) }, { name: 'Gumbel (ξ = 0)', type: 'line', points: xs.map(x => [x, dens(x, 0)]), dash: true }] },
+          calcul: [`H(x) = exp[−(1 + ξx)^(−1/ξ)]`, `P(M > 5) = ${f4(1 - cdf(5, xi))} contre ${f4(1 - cdf(5, 0))} pour Gumbel`, `Niveau de retour 100 blocs (quantile 99 %) = ${f3(q(0.99))} contre ${f3(-Math.log(-Math.log(0.99)))} (Gumbel)`],
+          resultat: xi > 0.02 ? 'Domaine de Fréchet : queue lourde (finance, assurance)' : xi < -0.02 ? `Domaine de Weibull : support borné (x ≤ ${f2(-1 / xi)})` : 'Domaine de Gumbel : queue exponentielle',
+        };
+      },
+    },
+    garch: {
+      titre: "Volatilité conditionnelle GARCH(1,1)",
+      explication: "σ²ₜ = ω + α·r²ₜ₋₁ + β·σ²ₜ₋₁. Après un choc, la volatilité monte puis revient vers son niveau de long terme √(ω/(1 − α − β)), d'autant plus lentement que α + β est proche de 1 (persistance) : c'est le regroupement de volatilité observé sur la BRVM.",
+      params: [
+        { id: 'a', label: 'α (réaction aux chocs)', min: 0.01, max: 0.3, step: 0.01, value: 0.08 },
+        { id: 'b', label: 'β (persistance)', min: 0.5, max: 0.98, step: 0.01, value: 0.9 },
+        { id: 'seed', label: 'Tirage n°', min: 1, max: 50, step: 1, value: 1 },
+      ],
+      compute(p){
+        const a = p.a, b = Math.min(p.b, 0.999 - a), lt = 0.0001, w = lt * (1 - a - b), g = N.rng(p.seed * 17);
+        let s2 = lt; const vol = [];
+        for(let t = 0; t < 500; t++){ const r = Math.sqrt(s2) * g.z(); vol.push([t, Math.sqrt(s2 * 252)]); s2 = w + a * r * r + b * s2; }
+        const half = Math.log(0.5) / Math.log(a + b);
+        return {
+          chart: { xlabel: 'Jour', ylabel: 'Volatilité annualisée', yfmt: v => N.pct(v, 0),
+            series: [{ name: 'σₜ (annualisée)', type: 'line', points: vol, width: 1.5 }], hlines: [{ y: Math.sqrt(lt * 252), label: 'Long terme' }] },
+          calcul: [`ω = σ²_LT (1 − α − β) = ${w.toExponential(2)}`, `Persistance α + β = ${f3(a + b)}`, `Demi-vie d'un choc = ln(0,5)/ln(α + β) = ${f2(half)} jours`, `Volatilité de long terme = √(252·ω/(1 − α − β)) = ${pct(Math.sqrt(lt * 252))}`],
+          resultat: `Un choc de volatilité se dissipe de moitié en ${f0(half)} jours`,
+        };
+      },
+    },
+    kupiec: {
+      titre: "Backtesting de la VaR : test de Kupiec",
+      explication: "Si la VaR à 99 % est bien calibrée, le nombre d'exceptions sur 250 jours suit une loi binomiale B(250 ; 1 %). Le test de Kupiec compare le nombre observé à cette loi ; le « feu tricolore » de Bâle classe le modèle en zone verte, orange ou rouge.",
+      params: [
+        { id: 'x', label: 'Exceptions observées', min: 0, max: 20, step: 1, value: 6 },
+        { id: 'c', label: 'Niveau de la VaR (%)', min: 95, max: 99.5, step: 0.5, value: 99 },
+      ],
+      compute(p){
+        const T = 250, q = 1 - p.c / 100, x = p.x;
+        const ks = range(0, 20, 20);
+        const ll = (k, pr) => (T - k) * Math.log(1 - pr) + (k > 0 ? k * Math.log(pr) : 0);
+        const phat = x / T, lr = -2 * (ll(x, q) - (x === 0 ? T * Math.log(1) : ll(x, phat)));
+        let cum = 0; for(let k = 0; k < x; k++) cum += N.binomPmf(k, T, q);
+        const zone = p.c === 99 ? (x <= 4 ? 'verte' : x <= 9 ? 'orange' : 'rouge') : null;
+        return {
+          chart: { xlabel: 'Nombre d\'exceptions sur 250 jours', ylabel: 'Probabilité', xfmt: v => String(Math.round(v)),
+            series: [{ name: `Binomiale(250 ; ${f3(q)})`, type: 'bar', points: ks.map(k => [k, N.binomPmf(k, T, q)]) }], vlines: [{ x, label: 'Observé' }] },
+          calcul: [`Attendu : 250 × ${f3(q)} = ${f2(T * q)} exceptions`, `LR_uc = −2 ln[(1−p)^{T−x} pˣ] + 2 ln[(1−x/T)^{T−x} (x/T)ˣ] = ${f3(lr)}`, `Seuil χ²(1) à 5 % = 3,841 ; P(X ≥ ${x}) = ${pct(1 - cum)}`],
+          resultat: (lr > 3.841 ? 'Modèle rejeté (LR > 3,84)' : 'Modèle non rejeté (LR ≤ 3,84)') + (zone ? ` — zone ${zone} du feu tricolore de Bâle` : ''),
+        };
+      },
+    },
+    copule: {
+      titre: "Copule gaussienne ou copule de Clayton ?",
+      explication: "Deux copules de même corrélation de rang (tau de Kendall). La copule de Clayton concentre les points dans le coin inférieur gauche : les pertes extrêmes arrivent ensemble (dépendance de queue), ce que la copule gaussienne ignore — la diversification y est surestimée.",
+      params: [
+        { id: 'tau', label: 'Tau de Kendall τ', min: 0.05, max: 0.85, step: 0.05, value: 0.5 },
+        { id: 'type', label: 'Copule : 0 = gaussienne, 1 = Clayton', min: 0, max: 1, step: 1, value: 1 },
+      ],
+      compute(p){
+        const g = N.rng(77), n = 700, pts = [], th = 2 * p.tau / (1 - p.tau), rho = Math.sin(Math.PI * p.tau / 2);
+        for(let i = 0; i < n; i++){
+          if(p.type){ const u = g.u(), w = g.u(); const v = Math.pow(Math.pow(u, -th) * (Math.pow(w, -th / (1 + th)) - 1) + 1, -1 / th); pts.push([u, v]); }
+          else { const z1 = g.z(), z2 = rho * z1 + Math.sqrt(1 - rho * rho) * g.z(); pts.push([N.normCdf(z1), N.normCdf(z2)]); }
+        }
+        const both = pts.filter(q => q[0] < 0.05 && q[1] < 0.05).length;
+        const lambda = p.type ? Math.pow(2, -1 / th) : 0;
+        return {
+          chart: { xlabel: 'U₁ (rang de la perte 1)', ylabel: 'U₂', xmin: 0, xmax: 1, ymin: 0, ymax: 1,
+            series: [{ name: p.type ? 'Clayton' : 'Gaussienne', type: 'scatter', points: pts, r: 2.2, slot: p.type ? 1 : 0 }] },
+          calcul: [p.type ? `Clayton : θ = 2τ/(1 − τ) = ${f3(th)}` : `Gaussienne : ρ = sin(πτ/2) = ${f3(rho)}`, `Dépendance de queue inférieure λ_L = ${p.type ? '2^(−1/θ) = ' + f3(lambda) : '0'}`, `Points dans le coin 5 % × 5 % : ${both} (indépendance : ${f2(n * 0.0025)})`],
+          resultat: p.type ? `Clayton : ${pct(lambda)} de chances que le risque 2 soit extrême quand le risque 1 l'est` : 'Gaussienne : pas de dépendance de queue',
+        };
+      },
+    },
+    duration: {
+      titre: "Immunisation actif-passif (ALM)",
+      explication: "Valeur de l'actif, du passif et de la situation nette (actif − passif) selon la variation des taux. Quand la duration de l'actif est inférieure à celle du passif, une baisse des taux dégrade la situation nette ; l'immunisation consiste à rapprocher les deux durations (pondérées par les valeurs).",
+      params: [
+        { id: 'da', label: 'Duration de l\'actif (ans)', min: 1, max: 15, step: 0.2, value: 5.2 },
+        { id: 'dl', label: 'Duration du passif (ans)', min: 1, max: 15, step: 0.2, value: 7.8 },
+      ],
+      compute(p){
+        const A0 = 800, L0 = 750, y0 = 0.05;
+        const val = (V0, D, dy) => V0 * Math.pow((1 + y0) / (1 + y0 + dy), D);
+        const dys = range(-0.03, 0.03, 60);
+        const gap = p.da - (L0 / A0) * p.dl;
+        return {
+          chart: { xlabel: 'Variation des taux', ylabel: 'Situation nette (Mds FCFA)', xfmt: v => N.pct(v, 1),
+            series: [{ name: 'Actif − passif', type: 'line', points: dys.map(d => [d, val(A0, p.da, d) - val(L0, p.dl, d)]) }], hlines: [{ y: A0 - L0, label: 'Aujourd\'hui' }, { y: 0 }] },
+          calcul: [`Gap de duration = D_A − (L/A)·D_L = ${f2(p.da)} − (750/800) × ${f2(p.dl)} = ${f3(gap)}`, `ΔSN ≈ −A·gap·Δy/(1+y) : pour Δy = −1 %, ΔSN ≈ ${f2(A0 * gap * 0.01 / 1.05)}`, `Situation nette si −2 % : ${f2(val(A0, p.da, -0.02) - val(L0, p.dl, -0.02))} ; si +2 % : ${f2(val(A0, p.da, 0.02) - val(L0, p.dl, 0.02))}`],
+          resultat: Math.abs(gap) < 0.3 ? 'Bilan quasi immunisé contre les petits mouvements de taux' : gap < 0 ? 'Gap négatif : exposé à une BAISSE des taux' : 'Gap positif : exposé à une HAUSSE des taux',
+        };
+      },
+    },
+    euler: {
+      titre: "Allocation du capital : méthode d'Euler",
+      explication: "Deux lignes d'activité aux pertes gaussiennes. Le capital global (VaR 99,5 %) est inférieur à la somme des capitaux isolés ; la méthode d'Euler répartit ce capital diversifié selon la contribution marginale de chaque ligne — la somme des contributions retombe exactement sur le total.",
+      params: [
+        { id: 's1', label: 'Écart-type ligne 1 (Mds)', min: 5, max: 60, step: 1, value: 30 },
+        { id: 's2', label: 'Écart-type ligne 2 (Mds)', min: 5, max: 60, step: 1, value: 20 },
+        { id: 'rho', label: 'Corrélation ρ', min: -0.5, max: 1, step: 0.05, value: 0.3 },
+      ],
+      compute(p){
+        const z = 2.576, sp = Math.sqrt(p.s1 ** 2 + p.s2 ** 2 + 2 * p.rho * p.s1 * p.s2);
+        const e1 = z * p.s1 * (p.s1 + p.rho * p.s2) / sp, e2 = z * p.s2 * (p.s2 + p.rho * p.s1) / sp;
+        return {
+          chart: { xlabel: 'Ligne d\'activité', ylabel: 'Capital (Mds FCFA)', xticks: [1, 2], xfmt: v => 'Ligne ' + Math.round(v),
+            series: [{ name: 'Capital isolé', type: 'bar', points: [[1, z * p.s1], [2, z * p.s2]] }, { name: 'Contribution d\'Euler', type: 'bar', points: [[1, e1], [2, e2]] }] },
+          calcul: [`Capital global = z·σ_p = 2,576 × ${f2(sp)} = ${f2(z * sp)}`, `Euler ligne 1 = z·σ₁(σ₁ + ρσ₂)/σ_p = ${f2(e1)}`, `Euler ligne 2 = z·σ₂(σ₂ + ρσ₁)/σ_p = ${f2(e2)}`, `Somme = ${f2(e1 + e2)} = capital global ✓`],
+          resultat: `Bénéfice de diversification : ${f2(z * (p.s1 + p.s2) - z * sp)} Mds (${pct(1 - sp / (p.s1 + p.s2))})`,
+        };
+      },
+    },
+    primeTemp: {
+      titre: "Prime d'une temporaire décès selon l'âge",
+      explication: "Prime annuelle pure d'une assurance temporaire décès (capital 10 M FCFA), calculée avec une loi de mortalité de Gompertz-Makeham et le principe d'équivalence. La prime croît presque exponentiellement avec l'âge à la souscription ; un taux technique plus élevé la réduit.",
+      params: [
+        { id: 'n', label: 'Durée du contrat (ans)', min: 1, max: 30, step: 1, value: 10 },
+        { id: 'i', label: 'Taux technique (%)', min: 0, max: 6, step: 0.25, value: 3.5 },
+        { id: 'x', label: 'Âge à la souscription', min: 20, max: 65, step: 1, value: 40 },
+      ],
+      compute(p){
+        const A = 0.0005, B = 3e-5, c = 1.1, v = 1 / (1 + p.i / 100), C = 1e7;
+        const q = x => 1 - Math.exp(-(A + B / Math.log(c) * (Math.pow(c, x + 1) - Math.pow(c, x))));
+        const prime = x => { let kp = 1, Ad = 0, a = 0; for(let k = 0; k < p.n; k++){ a += Math.pow(v, k) * kp; Ad += Math.pow(v, k + 1) * kp * q(x + k); kp *= 1 - q(x + k); } return { P: C * Ad / a, Ad, a }; };
+        const r = prime(p.x);
+        return {
+          chart: { xlabel: 'Âge à la souscription', ylabel: 'Prime annuelle (FCFA)', xfmt: v => String(Math.round(v)),
+            series: [{ name: 'Prime pure annuelle', type: 'line', points: range(20, 65, 45).map(x => [x, prime(x).P]) }, { name: 'Âge choisi', type: 'scatter', points: [[p.x, r.P]], slot: 1 }] },
+          calcul: [`q₍${p.x}₎ = ${f4(q(p.x))}`, `A¹ₓ:ₙ = Σ v^(k+1)·ₖpₓ·qₓ₊ₖ = ${f4(r.Ad)}`, `äₓ:ₙ = Σ vᵏ·ₖpₓ = ${f4(r.a)}`, `P = C·A¹ₓ:ₙ / äₓ:ₙ`],
+          resultat: `Prime annuelle pure ≈ ${N.fcfa(r.P)} (prime unique ${N.fcfa(C * r.Ad)})`,
+        };
+      },
+    },
+    bfcl: {
+      titre: "Chain Ladder ou Bornhuetter-Ferguson ?",
+      explication: "Charge ultime estimée pour une année de survenance récente selon le degré de développement (facteur cumulé restant). Chain Ladder multiplie le payé ; Bornhuetter-Ferguson ajoute au payé la part non encore développée de l'ultime a priori. Plus l'année est jeune (facteur élevé), plus Chain Ladder devient instable.",
+      params: [
+        { id: 'paye', label: 'Payé observé (M FCFA)', min: 10, max: 500, step: 10, value: 150 },
+        { id: 'apriori', label: 'Ultime a priori (M FCFA)', min: 100, max: 2000, step: 50, value: 800 },
+        { id: 'f', label: 'Facteur cumulé restant', min: 1, max: 8, step: 0.1, value: 4 },
+      ],
+      compute(p){
+        const fs = range(1, 8, 70);
+        const cl = f => p.paye * f, bf = f => p.paye + (1 - 1 / f) * p.apriori;
+        return {
+          chart: { xlabel: 'Facteur cumulé restant (année plus récente →)', ylabel: 'Ultime (M FCFA)',
+            series: [{ name: 'Chain Ladder', type: 'line', points: fs.map(f => [f, cl(f)]) }, { name: 'Bornhuetter-Ferguson', type: 'line', points: fs.map(f => [f, bf(f)]) }],
+            vlines: [{ x: p.f, label: 'f = ' + f2(p.f) }], hlines: [{ y: p.apriori, label: 'A priori' }] },
+          calcul: [`% développé = 1/f = ${pct(1 / p.f)}`, `Chain Ladder = ${p.paye} × ${f2(p.f)} = ${f2(cl(p.f))}`, `BF = ${p.paye} + (1 − 1/${f2(p.f)}) × ${p.apriori} = ${f2(bf(p.f))}`],
+          resultat: `Écart CL − BF = ${f2(cl(p.f) - bf(p.f))} M FCFA ; provision BF = ${f2(bf(p.f) - p.paye)} M`,
+        };
+      },
+    },
+    ruinePaths: {
+      titre: "Trajectoires de réserve (Cramér-Lundberg)",
+      explication: "Simulation de la réserve U(t) = u + ct − S(t) avec sinistres exponentiels. Les primes font monter la réserve en continu, chaque sinistre la fait chuter. La proportion de trajectoires qui passent sous zéro estime la probabilité de ruine, comparée à la formule exacte.",
+      params: [
+        { id: 'u', label: 'Réserve initiale u (M)', min: 0, max: 40, step: 1, value: 10 },
+        { id: 'theta', label: 'Chargement θ (%)', min: 1, max: 50, step: 1, value: 15 },
+        { id: 'seed', label: 'Tirage n°', min: 1, max: 50, step: 1, value: 1 },
+      ],
+      compute(p){
+        const g = N.rng(p.seed * 101), mu = 2, lam = 1, th = p.theta / 100, c = (1 + th) * lam * mu, T = 60;
+        const series = []; let ruined = 0; const nsim = 400;
+        for(let s = 0; s < nsim; s++){
+          let t = 0, U = p.u, dead = false; const pts = [[0, U]];
+          while(true){
+            const e = -Math.log(1 - g.u()) / lam;
+            if(t + e > T){ pts.push([T, U + c * (T - t)]); break; }
+            t += e; U += c * e; pts.push([t, U]);
+            U -= -mu * Math.log(1 - g.u()); pts.push([t, U]);
+            if(U < 0){ dead = true; break; }
+          }
+          if(dead) ruined++;
+          if(s < 6) series.push({ name: 'Trajectoire ' + (s + 1), type: 'line', points: pts, width: 1.3 });
+        }
+        const R = th / ((1 + th) * mu), psi = Math.exp(-R * p.u) / (1 + th);
+        return {
+          chart: { xlabel: 'Temps', ylabel: 'Réserve U(t)', series, hlines: [{ y: 0, label: 'Ruine' }] },
+          calcul: [`c = (1 + θ)λμ = ${f3(c)} par unité de temps`, `R = θ/((1 + θ)μ) = ${f4(R)}`, `ψ(u) exacte = e^(−Ru)/(1 + θ) = ${pct(psi)}`, `Simulation (horizon ${T}) : ${ruined}/${nsim} ruinées = ${pct(ruined / nsim)}`],
+          resultat: `Probabilité de ruine ≈ ${pct(psi)} (borne de Lundberg ${pct(Math.exp(-R * p.u))})`,
+        };
+      },
+    },
+    irb: {
+      titre: "Bâle II IRB : exigence de fonds propres selon la PD",
+      explication: "Formule réglementaire de l'approche IRB (modèle à un facteur de Vasicek, quantile 99,9 %) pour une exposition sur entreprise. L'exigence K croît avec la probabilité de défaut (PD), mais de façon concave : la corrélation réglementaire diminue quand la PD augmente.",
+      params: [
+        { id: 'lgd', label: 'LGD (%)', min: 10, max: 90, step: 5, value: 45 },
+        { id: 'm', label: 'Maturité effective M (ans)', min: 1, max: 5, step: 0.5, value: 2.5 },
+        { id: 'pd', label: 'PD de l\'emprunteur (%)', min: 0.03, max: 20, step: 0.01, value: 1 },
+      ],
+      compute(p){
+        const K = pd => {
+          const e = (1 - Math.exp(-50 * pd)) / (1 - Math.exp(-50));
+          const rho = 0.12 * e + 0.24 * (1 - e), b = Math.pow(0.11852 - 0.05478 * Math.log(pd), 2);
+          const k = (p.lgd / 100) * (N.normCdf((N.normInv(pd) + Math.sqrt(rho) * N.normInv(0.999)) / Math.sqrt(1 - rho)) - pd) * (1 + (p.m - 2.5) * b) / (1 - 1.5 * b);
+          return { k: Math.max(k, 0), rho };
+        };
+        const r = K(p.pd / 100);
+        return {
+          chart: { xlabel: 'Probabilité de défaut (PD)', ylabel: 'Exigence K (% de l\'EAD)', xfmt: v => N.pct(v, 0), yfmt: v => N.pct(v, 0),
+            series: [{ name: 'K(PD)', type: 'line', points: range(0.0005, 0.2, 120).map(pd => [pd, K(pd).k]) }, { name: 'PD choisie', type: 'scatter', points: [[p.pd / 100, r.k]], slot: 1 }] },
+          calcul: [`Corrélation réglementaire ρ = ${f4(r.rho)}`, `K = LGD·[N((N⁻¹(PD) + √ρ·N⁻¹(0,999))/√(1 − ρ)) − PD] × ajustement de maturité = ${pct2(r.k)}`, `RWA = 12,5 × K × EAD = ${f2(12.5 * r.k * 100)} % de l'EAD`],
+          resultat: `Fonds propres pour 1 Md FCFA d'exposition : ${f2(r.k * 1000)} M FCFA (pondération ${pct(12.5 * r.k)})`,
+        };
+      },
+    },
     ar1: {
       titre: "Processus AR(1) et autocorrélations",
       explication: "Xₜ = φXₜ₋₁ + εₜ. Si |φ| < 1 la série est stationnaire et ses autocorrélations décroissent géométriquement (φᵏ) ; quand φ → 1 on se rapproche d'une marche aléatoire (racine unitaire, ADF non rejeté).",
@@ -831,19 +1076,22 @@
     },
   };
 
-  // Rattachement aux matières (ids alignés sur le contenu de chaque formation)
+  // Rattachement aux matières (ids alignés sur le contenu de chaque formation).
+  // [visualisation, n° de section] : le graphique s'affiche dans le cours juste après cette section.
   window.VISUALS = {
     M1: {
-      0: [V.amortissement, V.levier], 1: [V.sousAssurance], 2: [V.poissonBinom, V.tcl], 3: [V.studentNormale, V.puissance],
-      4: [V.utilite], 5: [V.markovBM, V.ruineJoueur], 6: [V.obligation, V.binomialCRR], 7: [V.regression],
-      8: [V.regression, V.kde], 9: [V.regression], 11: [V.roc], 12: [V.surdispersion, V.regression],
-      13: [V.brownien, V.poissonProcess], 14: [V.inversion, V.newton], 15: [V.mcConvergence, V.varCharge],
-      16: [V.survie, V.kaplanMeier], 17: [V.payoffs], 18: [V.markowitz, V.blackScholes], 19: [V.amortissement],
-      21: [V.kde, V.ksTest],
+      0: [[V.levier, 3], [V.amortissement, 4]], 1: [[V.sousAssurance, 4]], 2: [[V.poissonBinom, 2], [V.tcl, 4]],
+      3: [[V.studentNormale, 2], [V.puissance, 3]], 4: [[V.utilite, 1]], 5: [[V.markovBM, 1], [V.ruineJoueur, 3]],
+      6: [[V.obligation, 2], [V.binomialCRR, 4]], 7: [[V.regression, 1]], 8: [[V.regression, 2], [V.kde, 2]], 9: [[V.regression, 2]],
+      11: [[V.roc, 4]], 12: [[V.surdispersion, 3], [V.regression, 4]], 13: [[V.poissonProcess, 0], [V.brownien, 3]],
+      14: [[V.inversion, 1], [V.newton, 2]], 15: [[V.mcConvergence, 1], [V.varCharge, 3]], 16: [[V.kaplanMeier, 2], [V.survie, 3]],
+      17: [[V.payoffs, 3]], 18: [[V.markowitz, 1], [V.blackScholes, 3]], 19: [[V.amortissement, 3]], 21: [[V.ksTest, 1], [V.kde, 3]],
     },
     M2: {
-      0: [V.ar1], 1: [V.gpd], 2: [V.blackScholes, V.brownien], 3: [V.varNormale], 4: [V.agregation], 5: [V.raroc],
-      6: [V.mortalite], 7: [V.chainLadder], 8: [V.credibilite], 9: [V.lundberg, V.varCharge], 11: [V.ratioSolva], 12: [V.agregation, V.ratioSolva],
+      0: [[V.acf, 0], [V.ar1, 1]], 1: [[V.gev, 1], [V.gpd, 2]], 2: [[V.brownien, 0], [V.blackScholes, 1], [V.garch, 2]],
+      3: [[V.varNormale, 1], [V.kupiec, 3]], 4: [[V.copule, 1], [V.duration, 2], [V.agregation, 3]], 5: [[V.euler, 1], [V.raroc, 2]],
+      6: [[V.mortalite, 0], [V.primeTemp, 2]], 7: [[V.varCharge, 0], [V.chainLadder, 2], [V.bfcl, 3]], 8: [[V.surdispersion, 0], [V.credibilite, 1]],
+      9: [[V.ruinePaths, 1], [V.lundberg, 2]], 11: [[V.irb, 1]], 12: [[V.ratioSolva, 1], [V.agregation, 2]],
     },
   };
 })();

@@ -9,23 +9,35 @@ MasterGraf couvre deux formations :
 
 Les fiches, exercices, quiz et le dictionnaire sont chiffrés (AES-256-GCM) et ne
 sont déchiffrés, dans le navigateur, qu'après vérification par un code à 6
-chiffres envoyé par e-mail. Le serveur ne transmet que la ou les clés des
-formations auxquelles l'étudiant est inscrit.
+chiffres envoyé par e-mail. Chaque compte reçoit les deux clés : l'app est
+unique et donne accès au Master 1 et au Master 2.
 
 ## Nouveautés
 
-- **Choix de la formation à l'inscription** (Master 1 ou Master 2) : le compte
-  n'a accès qu'à sa formation. Les comptes existants restent en Master 2. Dans
-  la console admin, une colonne « Formation » permet de passer un compte en
-  M1, M2 ou M1 + M2 (un sélecteur apparaît alors dans l'app).
-- **Onglet « Graphiques »** : graphiques interactifs avec curseurs et détail
-  du calcul pas à pas (M1 et M2) — code dans `public/js/visuals.js`.
+- **Une seule app pour les deux Masters** : tout compte a accès au M1 et au
+  M2 (boutons « Master 1 / Master 2 » en haut du menu). La formation choisie
+  à l'inscription s'ouvre par défaut ; l'admin peut la changer dans la
+  colonne « Formation principale ». Les comptes existants sont en M2.
+- **Mon profil** : e-mail, formation choisie à l'inscription, progression
+  dans cette formation et bouton **Se déconnecter** (le jeton de l'appareil
+  est supprimé côté serveur).
+- **Formules mathématiques** rendues avec KaTeX (hébergé dans
+  `public/vendor/katex`) et **blocs de théorie** (définitions, théorèmes,
+  démonstrations dépliables) dans les cours — pour le M1 dans
+  `tools/m1/math.js`.
+- **Graphiques intégrés au cours**, juste après la section qu'ils illustrent.
+- **Master 2 enrichi** : formules LaTeX, 25 blocs de théorie avec
+  démonstrations, 15 exemples de calcul, 4 exercices et 8 questions de quiz
+  par matière (au lieu de 2 et 4), code Excel/VBA (et SAS) pour chaque
+  matière, 11 nouveaux graphiques (ACF, GEV, GARCH, Kupiec, copules, ALM,
+  Euler, temporaire décès, BF vs Chain Ladder, trajectoires de ruine, IRB).
+- Graphiques interactifs avec curseurs et détail du calcul pas à pas (M1 et
+  M2) — code dans `public/js/visuals.js`.
 - **Code en Python, R, Excel, VBA (et SAS)** pour chaque matière du M1, et
   Excel/VBA ajoutés aux générateurs du M2 (`public/js/generators-m*.js`).
 - **Annales & fichiers partagés** : les étudiants déposent photos d'examens,
-  PDF, Word, Excel (4 Mo max, photos compressées automatiquement). Visibles
-  par les étudiants de la même formation ; seul l'auteur (ou l'admin) peut
-  supprimer. Fonction `netlify/functions/files.js`, stockage Netlify Blobs.
+  PDF, Word, Excel (4 Mo max, photos compressées automatiquement), rangés par
+  Master ; seul l'auteur (ou l'admin) peut supprimer. Fonction `netlify/functions/files.js`, stockage Netlify Blobs.
 
 ## Fichiers sensibles — à NE JAMAIS mettre sur GitHub public
 
@@ -68,8 +80,8 @@ l'assistant IA de SMC Lab — tu peux réutiliser la même clé).
 3. Dans Netlify → Site settings → Environment variables, ajoute :
    - `APP_KEY` = contenu de APP_KEY.txt (ne PAS cocher "secret", la fonction
      doit pouvoir la lire au runtime)
-   - `APP_KEY_M1` = contenu de APP_KEY_M1.txt (même règle) — sans elle, les
-     comptes Master 1 ne peuvent pas entrer (le Master 2 continue de marcher)
+   - `APP_KEY_M1` = contenu de APP_KEY_M1.txt (même règle) — sans elle, seul
+     le Master 2 s'affiche
    - `ADMIN_KEY` = contenu de ADMIN_KEY.txt
    - `VERIFY_MODE` = `on`
    - `BREVO_API_KEY` = ta clé API Brevo
@@ -133,7 +145,29 @@ commitées ; elles sont sauvegardées chiffrées dans `tools/m1-sources.enc`.
 (ou placer la clé dans `APP_KEY_M1.txt` à la racine au lieu de la variable).
 La clé ne change pas d'un build à l'autre : pas besoin de toucher à Netlify.
 
-## Régénérer le contenu du Master 2 après une modification
+## Modifier les cours du Master 2
+
+Les sources d'origine du M2 (content.js, build.js…) ne sont pas dans le dépôt.
+L'outil `tools/build-m2.js` permet de travailler directement à partir du
+fichier chiffré, avec la clé existante (celle de la variable Netlify `APP_KEY`) :
+
+1. Mets la clé dans `APP_KEY.txt` à la racine du projet (fichier ignoré par git).
+2. `node tools/build-m2.js --import` → extrait tout le contenu dans
+   `tools/m2/contenu.json` (lisible et modifiable).
+3. Modifie `tools/m2/contenu.json` : titres, paragraphes (`paragraphs`),
+   formules (`formule` en texte, ou `tex` en LaTeX), listes (`bullets`),
+   exercices, quiz (`a` = index de la bonne réponse), dictionnaire…
+   Pour utiliser les formules en ligne `$…$` et les blocs `theorie` comme au
+   M1, ajoute `"math": true` à la matière.
+4. `node tools/build-m2.js` → rechiffre `public/app.enc` avec la **même clé**
+   (rien à changer sur Netlify) et sauvegarde les sources chiffrées dans
+   `tools/m2-sources.enc`.
+5. Commit + push : Netlify redéploie.
+
+Ne change pas l'ordre ni le nombre de matières (`id` de 0 à 13) : les
+graphiques et générateurs d'exercices y sont rattachés.
+
+## Régénérer le contenu du Master 2 avec les sources d'origine (ancienne méthode)
 
 Après avoir modifié `content.js`, `quiz.js`, `exercices.js`, `glossary.js`,
 `codes.js` ou `generators.js`, relance :

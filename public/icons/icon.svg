@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MasterGraf">
+  <rect width="512" height="512" rx="112" fill="#14213D"/>
+  <circle cx="256" cy="256" r="196" fill="none" stroke="#2FA98C" stroke-width="10" opacity=".55"/>
+  <!-- Bouclier -->
+  <path d="M256 108 L370 150 V262 C370 340 320 392 256 420 C192 392 142 340 142 262 V150 Z" fill="#FFFFFF"/>
+  <!-- Point d'exclamation -->
+  <rect x="239" y="170" width="34" height="138" rx="17" fill="#14213D"/>
+  <circle cx="256" cy="350" r="20" fill="#14213D"/>
+  <!-- Pastille validée -->
+  <circle cx="362" cy="368" r="62" fill="#2FA98C" stroke="#14213D" stroke-width="14"/>
+  <path d="M332 369 L353 390 L393 348" fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
