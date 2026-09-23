@@ -245,9 +245,28 @@ function rich(text, m){
   return text.split(/(\$[^$]+\$)/g).map(part =>
     part.length > 2 && part[0] === '$' && part[part.length - 1] === '$' ? tex(part.slice(1, -1), false) : esc(part)).join('');
 }
+// Sur petit écran, coupe une formule en plusieurs lignes à ses séparateurs « , \\qquad » (hors accolades)
+function splitTex(t){
+  const parts = []; let depth = 0, cur = '';
+  for(let i = 0; i < t.length; i++){
+    const c = t[i];
+    if(c === '{') depth++;
+    else if(c === '}') depth--;
+    if(depth === 0 && t.startsWith('\\qquad', i) && cur.trim() && !/^\\qquad\s*$/.test(cur)){
+      parts.push(cur.replace(/,\s*$/, '')); cur = ''; i += 5; continue;
+    }
+    if(depth === 0 && t.startsWith(',', i) && /^,\s*\\quad(?!\w)/.test(t.slice(i))){
+      parts.push(cur); cur = ''; i = i + t.slice(i).match(/^,\s*\\quad/)[0].length - 1; continue;
+    }
+    cur += c;
+  }
+  if(cur.trim()) parts.push(cur);
+  return parts.map(x => x.trim()).filter(Boolean);
+}
 function formulaBlock(sec){
   if(sec.tex){
-    const list = Array.isArray(sec.tex) ? sec.tex : [sec.tex];
+    let list = Array.isArray(sec.tex) ? sec.tex : [sec.tex];
+    if(window.innerWidth < 700) list = [].concat(...list.map(splitTex));
     return '<div class="formule formule-tex">' + list.map(t => '<div class="fx">' + tex(t, true) + '</div>').join('') + '</div>';
   }
   // Formule en texte (contenu M2) : une relation par ligne pour qu'elle reste lisible sur mobile

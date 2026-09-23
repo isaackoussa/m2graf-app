@@ -26,6 +26,11 @@ unique et donne accès au Master 1 et au Master 2.
   démonstrations dépliables) dans les cours — pour le M1 dans
   `tools/m1/math.js`.
 - **Graphiques intégrés au cours**, juste après la section qu'ils illustrent.
+- **Master 2 enrichi** : formules LaTeX, 25 blocs de théorie avec
+  démonstrations, 15 exemples de calcul, 4 exercices et 8 questions de quiz
+  par matière (au lieu de 2 et 4), code Excel/VBA (et SAS) pour chaque
+  matière, 11 nouveaux graphiques (ACF, GEV, GARCH, Kupiec, copules, ALM,
+  Euler, temporaire décès, BF vs Chain Ladder, trajectoires de ruine, IRB).
 - Graphiques interactifs avec curseurs et détail du calcul pas à pas (M1 et
   M2) — code dans `public/js/visuals.js`.
 - **Code en Python, R, Excel, VBA (et SAS)** pour chaque matière du M1, et

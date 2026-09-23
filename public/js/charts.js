@@ -118,7 +118,7 @@
           el('path', { d, fill: color, class: 'mg-bar' }, plot);
         });
       } else if(s.type === 'scatter'){
-        pts.forEach(p => el('circle', { cx: X(p[0]), cy: Y(p[1]), r: 4.5, fill: color, class: 'mg-dot' }, plot));
+        pts.forEach(p => el('circle', { cx: X(p[0]), cy: Y(p[1]), r: s.r || 4.5, fill: color, class: 'mg-dot' }, plot));
       } else {
         let d = '';
         pts.forEach((p, i) => {
