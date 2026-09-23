@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Master Gestion des Risques">
+  <defs>
+    <path id="arcHaut" d="M 106 256 A 150 150 0 0 1 406 256"/>
+    <path id="arcBas" d="M 86 256 A 170 170 0 0 0 426 256"/>
+  </defs>
+  <circle cx="256" cy="256" r="250" fill="#FFFFFF"/>
+  <circle cx="256" cy="256" r="236" fill="none" stroke="#14213D" stroke-width="18"/>
+  <circle cx="256" cy="256" r="210" fill="none" stroke="#2FA98C" stroke-width="4"/>
+  <text font-family="Inter, 'Segoe UI', Arial, sans-serif" font-weight="800" font-size="46" letter-spacing="6" fill="#14213D" text-anchor="middle">
+    <textPath href="#arcHaut" startOffset="50%">MASTER</textPath>
+  </text>
+  <text font-family="Inter, 'Segoe UI', Arial, sans-serif" font-weight="800" font-size="34" letter-spacing="3" fill="#14213D" text-anchor="middle">
+    <textPath href="#arcBas" startOffset="50%" dominant-baseline="hanging">GESTION DES RISQUES</textPath>
+  </text>
+  <!-- Bouclier -->
+  <path d="M256 150 L338 180 V262 C338 318 302 356 256 376 C210 356 174 318 174 262 V180 Z" fill="#FFFFFF" stroke="#14213D" stroke-width="16" stroke-linejoin="round"/>
+  <!-- Point d'exclamation -->
+  <rect x="244" y="194" width="24" height="98" rx="12" fill="#14213D"/>
+  <circle cx="256" cy="322" r="14" fill="#14213D"/>
+  <!-- Pastille validée -->
+  <circle cx="330" cy="346" r="38" fill="#2FA98C" stroke="#FFFFFF" stroke-width="8"/>
+  <path d="M312 347 L325 360 L349 334" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
