@@ -1190,7 +1190,8 @@ async function finishUnlock(keys, masters, email, token, preferred, profile){
   if(!AVAILABLE.length) throw (failed[0] && failed[0].reason) || new Error('aucun contenu');
   let saved = null;
   try { saved = localStorage.getItem('mastergraf_master_' + email); } catch(e){}
-  const pick = [preferred, saved, PROFILE.principal, AVAILABLE[0]].find(m => m && CONTENT[m]);
+  // Priorité : choix fait à la connexion, puis formation principale du serveur (l'admin peut la changer), puis dernier choix de l'appareil
+  const pick = [preferred, PROFILE.principal, saved, AVAILABLE[0]].find(m => m && CONTENT[m]);
   setMaster(pick);
   document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
