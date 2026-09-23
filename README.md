@@ -15,15 +15,19 @@ unique et donne accès au Master 1 et au Master 2.
 ## Nouveautés
 
 - **Une seule app pour les deux Masters** : tout compte a accès au M1 et au
-  M2 (boutons « Master 1 / Master 2 » en haut du menu). À l'inscription,
-  l'étudiant choisit sa **formation principale**, celle qui s'ouvre par
-  défaut ; il peut la changer dans « Mon profil », et l'admin aussi dans la
+  M2 (boutons « Master 1 / Master 2 » en haut du menu). La formation choisie
+  à l'inscription s'ouvre par défaut ; l'admin peut la changer dans la
   colonne « Formation principale ». Les comptes existants sont en M2.
-- **Mon profil** : e-mail, date d'inscription, progression par Master,
-  formation principale et bouton **Se déconnecter** (le jeton de l'appareil
+- **Mon profil** : e-mail, formation choisie à l'inscription, progression
+  dans cette formation et bouton **Se déconnecter** (le jeton de l'appareil
   est supprimé côté serveur).
-- **Onglet « Graphiques »** : graphiques interactifs avec curseurs et détail
-  du calcul pas à pas (M1 et M2) — code dans `public/js/visuals.js`.
+- **Formules mathématiques** rendues avec KaTeX (hébergé dans
+  `public/vendor/katex`) et **blocs de théorie** (définitions, théorèmes,
+  démonstrations dépliables) dans les cours — pour le M1 dans
+  `tools/m1/math.js`.
+- **Graphiques intégrés au cours**, juste après la section qu'ils illustrent.
+- Graphiques interactifs avec curseurs et détail du calcul pas à pas (M1 et
+  M2) — code dans `public/js/visuals.js`.
 - **Code en Python, R, Excel, VBA (et SAS)** pour chaque matière du M1, et
   Excel/VBA ajoutés aux générateurs du M2 (`public/js/generators-m*.js`).
 - **Annales & fichiers partagés** : les étudiants déposent photos d'examens,
@@ -136,7 +140,29 @@ commitées ; elles sont sauvegardées chiffrées dans `tools/m1-sources.enc`.
 (ou placer la clé dans `APP_KEY_M1.txt` à la racine au lieu de la variable).
 La clé ne change pas d'un build à l'autre : pas besoin de toucher à Netlify.
 
-## Régénérer le contenu du Master 2 après une modification
+## Modifier les cours du Master 2
+
+Les sources d'origine du M2 (content.js, build.js…) ne sont pas dans le dépôt.
+L'outil `tools/build-m2.js` permet de travailler directement à partir du
+fichier chiffré, avec la clé existante (celle de la variable Netlify `APP_KEY`) :
+
+1. Mets la clé dans `APP_KEY.txt` à la racine du projet (fichier ignoré par git).
+2. `node tools/build-m2.js --import` → extrait tout le contenu dans
+   `tools/m2/contenu.json` (lisible et modifiable).
+3. Modifie `tools/m2/contenu.json` : titres, paragraphes (`paragraphs`),
+   formules (`formule` en texte, ou `tex` en LaTeX), listes (`bullets`),
+   exercices, quiz (`a` = index de la bonne réponse), dictionnaire…
+   Pour utiliser les formules en ligne `$…$` et les blocs `theorie` comme au
+   M1, ajoute `"math": true` à la matière.
+4. `node tools/build-m2.js` → rechiffre `public/app.enc` avec la **même clé**
+   (rien à changer sur Netlify) et sauvegarde les sources chiffrées dans
+   `tools/m2-sources.enc`.
+5. Commit + push : Netlify redéploie.
+
+Ne change pas l'ordre ni le nombre de matières (`id` de 0 à 13) : les
+graphiques et générateurs d'exercices y sont rattachés.
+
+## Régénérer le contenu du Master 2 avec les sources d'origine (ancienne méthode)
 
 Après avoir modifié `content.js`, `quiz.js`, `exercices.js`, `glossary.js`,
 `codes.js` ou `generators.js`, relance :

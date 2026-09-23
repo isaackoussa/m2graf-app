@@ -1,4 +1,4 @@
-const { blobStore, httpMethod, rawBody, cleanMaster, studentMasters, profileOf, keysFor } = require('../lib/common');
+const { blobStore, httpMethod, rawBody, studentMasters, profileOf, keysFor } = require('../lib/common');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SESSION_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000; // 90 jours
@@ -11,10 +11,10 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: 'config' }) };
   }
 
-  // action : absente (reprise de session), 'logout' (déconnexion) ou 'set_principal' (formation par défaut)
-  let email, token, action, master;
+  // action : absente (reprise de session) ou 'logout' (déconnexion)
+  let email, token, action;
   try {
-    ({ email, token, action, master } = JSON.parse(rawBody(event)));
+    ({ email, token, action } = JSON.parse(rawBody(event)));
   } catch (e) {
     return { statusCode: 400, body: JSON.stringify({ error: 'bad_request' }) };
   }
@@ -47,12 +47,6 @@ exports.handler = async (event) => {
   }
   if (student.blocked) {
     return { statusCode: 403, body: JSON.stringify({ error: 'blocked' }) };
-  }
-  if (action === 'set_principal') {
-    if (!cleanMaster(master)) return { statusCode: 400, body: JSON.stringify({ error: 'bad_master' }) };
-    student.principal = cleanMaster(master);
-    await studentsStore.set(email, JSON.stringify(student));
-    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile: profileOf(student) }) };
   }
   const masters = studentMasters(student);
   const { keys, missing } = keysFor(masters);

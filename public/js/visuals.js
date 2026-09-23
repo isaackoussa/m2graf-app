@@ -831,16 +831,18 @@
     },
   };
 
-  // Rattachement aux matières (ids alignés sur le contenu de chaque formation)
+  // Rattachement aux matières (ids alignés sur le contenu de chaque formation).
+  // [visualisation, n° de section] : le graphique s'affiche dans le cours juste après cette section.
   window.VISUALS = {
     M1: {
-      0: [V.amortissement, V.levier], 1: [V.sousAssurance], 2: [V.poissonBinom, V.tcl], 3: [V.studentNormale, V.puissance],
-      4: [V.utilite], 5: [V.markovBM, V.ruineJoueur], 6: [V.obligation, V.binomialCRR], 7: [V.regression],
-      8: [V.regression, V.kde], 9: [V.regression], 11: [V.roc], 12: [V.surdispersion, V.regression],
-      13: [V.brownien, V.poissonProcess], 14: [V.inversion, V.newton], 15: [V.mcConvergence, V.varCharge],
-      16: [V.survie, V.kaplanMeier], 17: [V.payoffs], 18: [V.markowitz, V.blackScholes], 19: [V.amortissement],
-      21: [V.kde, V.ksTest],
+      0: [[V.levier, 3], [V.amortissement, 4]], 1: [[V.sousAssurance, 4]], 2: [[V.poissonBinom, 2], [V.tcl, 4]],
+      3: [[V.studentNormale, 2], [V.puissance, 3]], 4: [[V.utilite, 1]], 5: [[V.markovBM, 1], [V.ruineJoueur, 3]],
+      6: [[V.obligation, 2], [V.binomialCRR, 4]], 7: [[V.regression, 1]], 8: [[V.regression, 2], [V.kde, 2]], 9: [[V.regression, 2]],
+      11: [[V.roc, 4]], 12: [[V.surdispersion, 3], [V.regression, 4]], 13: [[V.poissonProcess, 0], [V.brownien, 3]],
+      14: [[V.inversion, 1], [V.newton, 2]], 15: [[V.mcConvergence, 1], [V.varCharge, 3]], 16: [[V.kaplanMeier, 2], [V.survie, 3]],
+      17: [[V.payoffs, 3]], 18: [[V.markowitz, 1], [V.blackScholes, 3]], 19: [[V.amortissement, 3]], 21: [[V.ksTest, 1], [V.kde, 3]],
     },
+    // Master 2 : sections inconnues côté client → graphiques en fin de cours
     M2: {
       0: [V.ar1], 1: [V.gpd], 2: [V.blackScholes, V.brownien], 3: [V.varNormale], 4: [V.agregation], 5: [V.raroc],
       6: [V.mortalite], 7: [V.chainLadder], 8: [V.credibilite], 9: [V.lundberg, V.varCharge], 11: [V.ratioSolva], 12: [V.agregation, V.ratioSolva],

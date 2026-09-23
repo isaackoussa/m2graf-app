@@ -6,3 +6,4 @@ ADMIN_KEY.txt
 # Sources en clair du contenu Master 1 (chiffrées dans tools/m1-sources.enc)
 tools/m1/
 APP_KEY_M1.txt
+tools/m2/

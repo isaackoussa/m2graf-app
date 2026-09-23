@@ -17,7 +17,10 @@ const LANG_LABELS = { python: 'Python', r: 'R', excel: 'Excel', vba: 'VBA', sas:
 const LANG_ORDER = ['python', 'r', 'excel', 'vba', 'sas'];
 
 function GENS(){ return (currentMaster === 'M1' ? window.GENERATORS_M1 : window.GENERATORS_M2) || {}; }
-function VIZ(id){ return ((window.VISUALS || {})[currentMaster] || {})[id] || []; }
+// Graphiques d'une matière : [{ v: visualisation, s: index de la section après laquelle l'afficher (null = fin du cours) }]
+function VIZ(id){
+  return (((window.VISUALS || {})[currentMaster] || {})[id] || []).map(e => Array.isArray(e) ? { v: e[0], s: e[1] } : { v: e, s: null });
+}
 function semLabel(s){ return 'Semestre ' + String(s).replace(/^S/, ''); }
 
 function loadProgress(){
@@ -173,7 +176,6 @@ function hasCode(m){ return m.code && Object.keys(m.code).length > 0; }
 function renderMatiere(){
   const m = DATA.find(x => x.id === state.matiereId);
   const isRead = progress[m.id] && progress[m.id].read;
-  const nv = VIZ(m.id).length;
   const gen = GENS()[m.id];
   let html = (m.ue ? '<div class="mat-ue">UE — ' + esc(m.ue) + '</div>' : '') +
     '<div class="mat-title-row"><h2>' + esc(m.titre) + '</h2>' +
@@ -182,7 +184,6 @@ function renderMatiere(){
     (m.credits ? '<div class="mat-meta">' + m.credits + ' crédits · ' + semLabel(m.semestre) + '</div>' : '') +
     '<div class="tabs">' +
       '<button class="tab-btn' + (state.tab==='cours'?' active':'') + '" data-tab="cours">Cours</button>' +
-      (nv ? '<button class="tab-btn' + (state.tab==='graphiques'?' active':'') + '" data-tab="graphiques">Graphiques (' + nv + ')</button>' : '') +
       '<button class="tab-btn' + (state.tab==='exercices'?' active':'') + '" data-tab="exercices">Exercices (' + m.exercices.length + (gen ? '+' : '') + ')</button>' +
       (hasCode(m) || (gen && gen.code) ? '<button class="tab-btn' + (state.tab==='code'?' active':'') + '" data-tab="code">Code</button>' : '') +
       '<button class="tab-btn' + (state.tab==='quiz'?' active':'') + '" data-tab="quiz">Quiz (' + m.quiz.length + (gen ? '+' : '') + ')</button>' +
@@ -197,10 +198,9 @@ function renderMatiere(){
   }));
 
   const tc = document.getElementById('tab-content');
-  if(state.tab === 'cours'){
+  if(state.tab === 'cours' || state.tab === 'graphiques'){
     tc.innerHTML = renderCours(m);
-  } else if(state.tab === 'graphiques'){
-    renderGraphiques(m, tc);
+    bindVizCards(m);
   } else if(state.tab === 'exercices'){
     tc.innerHTML = renderExercices(m);
     bindGeneratorExo(m);
@@ -229,26 +229,66 @@ function footerNav(m, suffix, tabFor){
   '</div>';
 }
 
+/* ---------------- Formules (KaTeX) et théorie ---------------- */
+// Rend une expression LaTeX ; repli en texte brut si KaTeX n'est pas chargé
+function tex(src, display){
+  if(window.katex){
+    try { return katex.renderToString(src, { displayMode: !!display, throwOnError: false, strict: 'ignore' }); } catch(e){}
+  }
+  return '<code class="tex">' + esc(src) + '</code>';
+}
+// Texte avec formules en ligne $…$ (contenus marqués math: true) ; une ligne « $$…$$ » est une formule centrée
+function rich(text, m){
+  text = String(text == null ? '' : text);
+  if(!m || !m.math || text.indexOf('$') < 0) return esc(text);
+  if(/^\$\$[\s\S]+\$\$$/.test(text.trim())) return tex(text.trim().slice(2, -2), true);
+  return text.split(/(\$[^$]+\$)/g).map(part =>
+    part.length > 2 && part[0] === '$' && part[part.length - 1] === '$' ? tex(part.slice(1, -1), false) : esc(part)).join('');
+}
+function formulaBlock(sec){
+  if(sec.tex){
+    const list = Array.isArray(sec.tex) ? sec.tex : [sec.tex];
+    return '<div class="formule formule-tex">' + list.map(t => '<div class="fx">' + tex(t, true) + '</div>').join('') + '</div>';
+  }
+  // Formule en texte (contenu M2) : une relation par ligne pour qu'elle reste lisible sur mobile
+  return '<div class="formule">' + String(sec.formule).split(/\s+;\s+/).map(f => '<div class="fx-line">' + esc(f) + '</div>').join('') + '</div>';
+}
+function theorieBlock(t, m){
+  const line = x => /^\$\$[\s\S]+\$\$$/.test(String(x).trim()) ? '<div class="fx">' + rich(x, m) + '</div>' : '<p>' + rich(x, m) + '</p>';
+  return '<div class="theorie"><div class="th-head"><span class="th-type">' + esc(t.type || 'Théorème') + '</span>' +
+      (t.titre ? '<span class="th-titre">' + rich(t.titre, m) + '</span>' : '') + '</div>' +
+    '<div class="th-enonce">' + (t.enonce || []).map(line).join('') + '</div>' +
+    (t.preuve && t.preuve.length ? '<details class="th-preuve"><summary>' + esc(t.preuveTitre || 'Voir la démonstration') + '</summary>' +
+      '<ol>' + t.preuve.map(x => '<li>' + rich(x, m) + '</li>').join('') + '</ol><div class="qed">∎</div></details>' : '') +
+    (t.interpretation ? '<p class="th-interp"><b>À retenir :</b> ' + rich(t.interpretation, m) + '</p>' : '') +
+  '</div>';
+}
+
 function renderCours(m){
   let h = '';
   if(m.objectifs && m.objectifs.length){
     h += '<div class="objectifs"><h4>Objectifs pédagogiques</h4><ul>' +
-      m.objectifs.map(o => '<li>' + esc(o) + '</li>').join('') + '</ul></div>';
+      m.objectifs.map(o => '<li>' + rich(o, m) + '</li>').join('') + '</ul></div>';
   }
-  m.sections.forEach(sec => {
+  const viz = VIZ(m.id);
+  let k = 0;
+  const cards = s => viz.filter(e => e.s === s).map(e => vizCard(e.v, k++)).join('');
+  m.sections.forEach((sec, i) => {
     h += '<div class="section-block"><h3>' + esc(sec.titre) + '</h3>';
-    (sec.paragraphs||[]).forEach(p => h += '<p>' + esc(p) + '</p>');
-    if(sec.formule) h += '<div class="formule">' + esc(sec.formule) + '</div>';
-    if(sec.bullets) h += '<ul>' + sec.bullets.map(b => '<li>' + esc(b) + '</li>').join('') + '</ul>';
+    (sec.paragraphs||[]).forEach(p => h += '<p>' + rich(p, m) + '</p>');
+    if(sec.formule || sec.tex) h += formulaBlock(sec);
+    if(sec.codeLine) h += '<pre class="code-line"><code>' + esc(sec.codeLine) + '</code></pre>';
+    if(sec.bullets) h += '<ul>' + sec.bullets.map(b => '<li>' + rich(b, m) + '</li>').join('') + '</ul>';
+    (sec.theorie || []).forEach(t => h += theorieBlock(t, m));
     if(sec.exemple) h += '<div class="exemple"><h5>' + esc(sec.exemple.titre || 'Exemple de calcul') + '</h5><ol>' +
-      (sec.exemple.lignes || []).map(l => '<li>' + esc(l) + '</li>').join('') + '</ol></div>';
+      (sec.exemple.lignes || []).map(l => '<li>' + rich(l, m) + '</li>').join('') + '</ol></div>';
+    h += cards(i);
     h += '</div>';
   });
-  if(VIZ(m.id).length){
-    h += '<div class="gen-box"><div class="gen-head"><span class="gen-badge">Graphiques</span><span class="gen-title">Visualise les notions du cours</span></div>' +
-      '<p class="gen-desc">' + VIZ(m.id).map(v => esc(v.titre)).join(' · ') + '</p>' +
-      '<button class="btn-primary" id="goto-viz">Ouvrir les graphiques interactifs</button></div>';
-    setTimeout(() => { const b = document.getElementById('goto-viz'); if(b) b.addEventListener('click', () => { state.tab = 'graphiques'; renderMatiere(); }); });
+  // Graphiques sans section précise (ou section absente) : en fin de cours
+  const rest = viz.filter(e => e.s == null || e.s >= m.sections.length);
+  if(rest.length){
+    h += '<div class="section-block"><h3>Graphiques interactifs</h3>' + rest.map(e => vizCard(e.v, k++)).join('') + '</div>';
   }
   h += footerNav(m, 'cours', () => 'cours');
   return h;
@@ -261,23 +301,30 @@ function fmtParam(p, v){
   return Number(v).toLocaleString('fr-FR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
-function renderGraphiques(m, tc){
-  const list = VIZ(m.id);
-  vizUpdaters = [];
-  tc.innerHTML = '<p class="exo-intro">Déplace les curseurs : le graphique et le détail du calcul se mettent à jour. Survole ou touche le graphique pour lire les valeurs.</p>' +
-    list.map((v, i) => '<div class="viz-card" id="viz-' + i + '">' +
-      '<h3>' + esc(v.titre) + '</h3><p class="viz-exp">' + esc(v.explication) + '</p>' +
-      '<div class="viz-params">' + v.params.map(p =>
-        '<div><label for="viz-' + i + '-' + p.id + '"><span>' + esc(p.label) + '</span><b id="viz-' + i + '-' + p.id + '-v"></b></label>' +
-        '<input type="range" id="viz-' + i + '-' + p.id + '" min="' + p.min + '" max="' + p.max + '" step="' + p.step + '" value="' + p.value + '"></div>'
-      ).join('') + '</div>' +
-      '<div class="viz-chart"></div>' +
-      '<div class="viz-calc"><h5>Détail du calcul</h5><ol></ol></div>' +
-      '<div class="viz-result"></div>' +
-    '</div>').join('') + footerNav(m, 'viz', x => VIZ(x.id).length ? 'graphiques' : 'cours');
+function vizCard(v, i){
+  return '<div class="viz-card" id="viz-' + i + '">' +
+    '<div class="viz-kicker">Graphique interactif</div>' +
+    '<h3>' + esc(v.titre) + '</h3><p class="viz-exp">' + esc(v.explication) + '</p>' +
+    '<div class="viz-params">' + v.params.map(p =>
+      '<div><label for="viz-' + i + '-' + p.id + '"><span>' + esc(p.label) + '</span><b id="viz-' + i + '-' + p.id + '-v"></b></label>' +
+      '<input type="range" id="viz-' + i + '-' + p.id + '" min="' + p.min + '" max="' + p.max + '" step="' + p.step + '" value="' + p.value + '"></div>'
+    ).join('') + '</div>' +
+    '<div class="viz-chart"></div>' +
+    '<div class="viz-calc"><h5>Détail du calcul</h5><ol></ol></div>' +
+    '<div class="viz-result"></div>' +
+  '</div>';
+}
 
-  list.forEach((v, i) => {
+// Active les graphiques insérés dans le cours (même ordre que renderCours)
+function bindVizCards(m){
+  const viz = VIZ(m.id);
+  const ordered = [];
+  m.sections.forEach((_, i) => viz.filter(e => e.s === i).forEach(e => ordered.push(e.v)));
+  viz.filter(e => e.s == null || e.s >= m.sections.length).forEach(e => ordered.push(e.v));
+  vizUpdaters = [];
+  ordered.forEach((v, i) => {
     const card = document.getElementById('viz-' + i);
+    if(!card) return;
     const update = () => {
       const p = {};
       v.params.forEach(pp => {
@@ -312,7 +359,7 @@ window.addEventListener('resize', () => {
   clearTimeout(vizResizeTimer);
   vizResizeTimer = setTimeout(() => {
     lastVizWidth = window.innerWidth;
-    if(state.view === 'matiere' && state.tab === 'graphiques') vizUpdaters.forEach(u => u());
+    if(state.view === 'matiere' && state.tab === 'cours') vizUpdaters.forEach(u => u());
   }, 200);
 });
 
@@ -982,46 +1029,23 @@ function renderProfil(){
   let html = '<div class="home-hero"><div class="kicker">Compte</div><h2>Mon profil</h2></div>';
   html += '<div class="profile-card"><span class="avatar">' + esc(initialOf(currentEmail)) + '</span><div class="who">' +
     '<div class="em">' + esc(currentEmail) + '</div>' +
-    '<div class="meta">Formation principale : <b>' + MASTER_INFO[principal].label + ' GRAF</b>' +
+    '<div class="meta">Ma formation : <b>' + MASTER_INFO[principal].label + ' GRAF</b>' +
       (pr.firstSeen ? '<br>Inscrit depuis le ' + new Date(pr.firstSeen).toLocaleDateString('fr-FR') : '') +
       (pr.opens ? ' · ' + pr.opens + ' connexion' + (pr.opens > 1 ? 's' : '') : '') + '</div>' +
   '</div></div>';
 
-  html += '<div class="profile-section"><h3>Ma progression</h3><p class="hint">Matières marquées comme lues et score moyen aux quiz, sur cet appareil.</p>' +
-    AVAILABLE.map(m => { const g = progressOf(m); return '<div class="prog-row"><span class="pl">' + MASTER_INFO[m].label + '</span>' +
+  const g = progressOf(principal);
+  html += '<div class="profile-section"><h3>Ma progression — ' + MASTER_INFO[principal].label + '</h3><p class="hint">Matières marquées comme lues et score moyen aux quiz, sur cet appareil.</p>' +
+    '<div class="prog-row"><span class="pl">' + MASTER_INFO[principal].label + '</span>' +
       '<span class="pt"><i style="width:' + (g.total ? g.read / g.total * 100 : 0) + '%"></i></span>' +
-      '<span class="pv">' + g.read + '/' + g.total + ' lues' + (g.avg !== null ? ' · quiz ' + g.avg + ' %' : '') + '</span></div>'; }).join('') +
+      '<span class="pv">' + g.read + '/' + g.total + ' lues' + (g.avg !== null ? ' · quiz ' + g.avg + ' %' : '') + '</span></div>' +
   '</div>';
-
-  html += '<div class="profile-section"><h3>Formation principale</h3><p class="hint">Tu as accès aux deux Masters. La formation principale est celle qui s\'ouvre à la connexion.</p>' +
-    '<div class="seg">' + ['M1', 'M2'].map(m => '<button data-principal="' + m + '" class="' + (m === principal ? 'active' : '') + '">' + MASTER_INFO[m].label + '</button>').join('') + '</div>' +
-    '<div id="profile-msg"></div></div>';
 
   html += '<div class="profile-section"><h3>Se déconnecter</h3><p class="hint">Ferme ta session sur cet appareil. Pour revenir, il faudra demander un nouveau code par e-mail. Ta progression reste enregistrée sur cet appareil.</p>' +
     '<button class="btn-danger" id="logout-btn">Se déconnecter</button></div>';
   root.innerHTML = html;
 
-  root.querySelectorAll('[data-principal]').forEach(b => b.addEventListener('click', () => setPrincipal(b.dataset.principal)));
   document.getElementById('logout-btn').addEventListener('click', logout);
-}
-
-async function setPrincipal(m){
-  const msg = document.getElementById('profile-msg');
-  try {
-    const res = await fetch('/api/resume', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: currentEmail, token: currentToken, action: 'set_principal', master: m }),
-    });
-    if(!res.ok) throw new Error(res.status);
-    const { profile } = await res.json();
-    PROFILE = Object.assign({}, PROFILE, profile);
-    try { localStorage.setItem('mastergraf_master_' + currentEmail, m); } catch(e){}
-    if(CONTENT[m] && m !== currentMaster){ setMaster(m); renderSidebar(); }
-    renderProfil();
-    document.getElementById('profile-msg').textContent = MASTER_INFO[m].label + ' est maintenant ta formation principale.';
-  } catch(e){
-    if(msg){ msg.style.color = 'var(--red)'; msg.textContent = 'Modification impossible pour le moment.'; }
-  }
 }
 
 async function logout(){
