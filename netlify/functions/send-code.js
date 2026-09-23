@@ -41,9 +41,9 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: 'config: service mail non configuré' }) };
   }
 
-  let email;
+  let email, master;
   try {
-    ({ email } = JSON.parse(rawBody(event)));
+    ({ email, master } = JSON.parse(rawBody(event)));
   } catch (e) {
     return { statusCode: 400, body: JSON.stringify({ error: 'bad_request' }) };
   }
@@ -51,6 +51,8 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'invalid_email' }) };
   }
   email = email.trim().toLowerCase();
+  // Master choisi à l'inscription (M1 ou M2) — utilisé à la vérification pour un nouveau compte
+  master = ['M1', 'M2'].includes(String(master || '').toUpperCase()) ? String(master).toUpperCase() : null;
 
   const codesStore = blobStore('m2graf-codes');
   const existing = await codesStore.get(email, { type: 'json' });
@@ -61,7 +63,7 @@ exports.handler = async (event) => {
 
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
   await codesStore.set(email, JSON.stringify({
-    code, sentAt: now, expiresAt: now + CODE_TTL_MS, attempts: 0,
+    code, sentAt: now, expiresAt: now + CODE_TTL_MS, attempts: 0, master,
   }));
   console.log('send-code: email=', email, 'code généré=', code, 'siteID configuré=', !!process.env.NETLIFY_SITE_ID);
 
@@ -73,11 +75,11 @@ exports.handler = async (event) => {
       'Accept': 'application/json',
     },
     body: JSON.stringify({
-      sender: { email: MAIL_FROM, name: 'M2 GRAF' },
+      sender: { email: MAIL_FROM, name: 'MasterGraf' },
       to: [{ email }],
-      subject: 'Ton code de connexion M2 GRAF',
+      subject: 'Ton code de connexion MasterGraf',
       htmlContent:
-        '<p>Voici ton code de connexion à M2 GRAF :</p>' +
+        '<p>Voici ton code de connexion à MasterGraf :</p>' +
         '<p style="font-size:28px;font-weight:bold;letter-spacing:4px;">' + code + '</p>' +
         '<p>Ce code est valable 10 minutes. Si tu n\'es pas à l\'origine de cette demande, ignore ce message.</p>',
     }),

@@ -32,7 +32,18 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/api/files"
+  to = "/.netlify/functions/files"
+  status = 200
+  force = true
+
 [[headers]]
   for = "/app.enc"
+  [headers.values]
+    Cache-Control = "no-store"
+
+[[headers]]
+  for = "/app-m1.enc"
   [headers.values]
     Cache-Control = "no-store"

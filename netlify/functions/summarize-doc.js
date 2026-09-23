@@ -14,9 +14,10 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_FILE_BYTES = 4 * 1024 * 1024; // 4 Mo (avant encodage base64)
 const MAX_TEXT_CHARS = 18000; // texte envoyé à l'IA, tronqué au besoin
 
-const PROMPT_TEMPLATE = (matiereTitre, texte) => {
+const PROMPT_TEMPLATE = (matiereTitre, texte, master) => {
+  const niveau = master === 'M1' ? 'Master 1' : 'Master 2';
   const contexte = matiereTitre ? 'Le document ci-dessous concerne la matière : "' + matiereTitre + '".' : '';
-  return 'Tu es un assistant pédagogique pour un étudiant en Master 2 Gestion des Risques en Assurance et Finance (GRAF). ' + contexte + '\n\n' +
+  return 'Tu es un assistant pédagogique pour un étudiant en ' + niveau + ' Gestion des Risques en Assurance et Finance (GRAF). ' + contexte + '\n\n' +
     'Analyse le document suivant et produis, en français, une réponse structurée en Markdown avec exactement ces sections :\n' +
     '## Résumé\n' +
     '(4 à 6 phrases résumant l\'essentiel du document)\n' +
@@ -24,7 +25,7 @@ const PROMPT_TEMPLATE = (matiereTitre, texte) => {
     '(liste à puces des notions/termes techniques importants, avec une courte définition chacun)\n' +
     '## Points à retenir pour l\'examen\n' +
     '(liste à puces des points les plus susceptibles d\'être évalués)\n\n' +
-    'Reste concis, précis, et adapté au niveau Master 2 en actuariat/finance/gestion des risques.\n\n' +
+    'Reste concis, précis, et adapté au niveau ' + niveau + ' en actuariat/finance/gestion des risques.\n\n' +
     'Voici le contenu du document :\n---\n' + texte + '\n---';
 };
 
@@ -68,7 +69,7 @@ exports.handler = async (event) => {
   } catch (e) {
     return { statusCode: 400, body: JSON.stringify({ error: 'bad_request' }) };
   }
-  let { email, filename, fileBase64, matiereTitre } = body;
+  let { email, filename, fileBase64, matiereTitre, master } = body;
   if (!email || !EMAIL_RE.test(email) || !fileBase64) {
     return { statusCode: 400, body: JSON.stringify({ error: 'bad_request' }) };
   }
@@ -125,7 +126,7 @@ exports.handler = async (event) => {
     texte = texte.slice(0, MAX_TEXT_CHARS) + '\\n\\n[... document tronqué ...]';
   }
 
-  const prompt = PROMPT_TEMPLATE(matiereTitre, texte);
+  const prompt = PROMPT_TEMPLATE(matiereTitre, texte, master);
 
   let summary;
   try {

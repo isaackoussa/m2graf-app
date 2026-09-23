@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>M2 GRAF — Admin</title>
+<title>MasterGraf — Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--navy:#14213D;--teal:#2FA98C;--paper:#F6F4EF;--ink:#22262B;--muted:#6B7480;--line:#DEDACD;--red:#B3432B;}
@@ -28,6 +28,9 @@ tr.blocked{opacity:0.5;}
 button.act{padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:12.5px;}
 button.act:hover{border-color:var(--teal);}
 #toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+select.mst{padding:5px 8px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;background:#fff;}
+h2{font-family:'Source Serif 4',serif;color:var(--navy);margin:40px 0 14px;font-size:20px;}
+a.lnk{color:var(--navy);}
 #toolbar button{background:var(--navy);color:#fff;border:none;padding:9px 16px;border-radius:8px;font-size:13px;cursor:pointer;}
 </style>
 </head>
@@ -36,7 +39,7 @@ button.act:hover{border-color:var(--teal);}
 <div id="gate">
   <div id="gate-card">
     <h1>Console admin</h1>
-    <p style="color:var(--muted);font-size:13.5px;">M2 GRAF</p>
+    <p style="color:var(--muted);font-size:13.5px;">MasterGraf</p>
     <input type="password" id="admin-key-input" placeholder="Clé admin">
     <button id="admin-submit">Entrer</button>
     <div id="err"></div>
@@ -50,8 +53,14 @@ button.act:hover{border-color:var(--teal);}
   </div>
   <div class="kpis" id="kpis"></div>
   <table>
-    <thead><tr><th>E-mail</th><th>Ouvertures</th><th>Première visite</th><th>Dernière visite</th><th>Statut</th><th></th></tr></thead>
+    <thead><tr><th>E-mail</th><th>Formation</th><th>Ouvertures</th><th>Première visite</th><th>Dernière visite</th><th>Statut</th><th></th></tr></thead>
     <tbody id="tbody"></tbody>
+  </table>
+
+  <h2>Fichiers partagés (annales, photos d'examens…)</h2>
+  <table>
+    <thead><tr><th>Titre</th><th>Formation</th><th>Matière</th><th>Catégorie</th><th>Déposé par</th><th>Date</th><th></th></tr></thead>
+    <tbody id="files-body"><tr><td colspan="7">Chargement…</td></tr></tbody>
   </table>
 </div>
 
@@ -95,6 +104,7 @@ function render(){
     const flag = (r.opens||0) > 60;
     return '<tr class="'+(r.blocked?'blocked':(flag?'flag':''))+'">' +
       '<td>'+esc(r.email)+'</td>' +
+      '<td>'+masterSelect(r)+'</td>' +
       '<td>'+(r.opens||0)+'</td>' +
       '<td>'+fmtDate(r.firstSeen)+'</td>' +
       '<td>'+fmtDate(r.lastSeen)+'</td>' +
@@ -104,6 +114,53 @@ function render(){
   }).join('');
 
   document.querySelectorAll('.act').forEach(b => b.addEventListener('click', () => toggleBlock(b.dataset.email, b.dataset.action)));
+  document.querySelectorAll('select.mst').forEach(sel => sel.addEventListener('change', () => setMasters(sel.dataset.email, sel.value.split('+'))));
+  loadFiles();
+}
+
+// Comptes créés avant l'arrivée du Master 1 : pas de champ masters → M2
+function mastersOf(r){ return (Array.isArray(r.masters) && r.masters.length ? r.masters.slice().sort() : ['M2']).join('+'); }
+function masterSelect(r){
+  const cur = mastersOf(r);
+  return '<select class="mst" data-email="'+esc(r.email)+'">' +
+    ['M1','M2','M1+M2'].map(v => '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+(v==='M1+M2'?'M1 + M2':v)+'</option>').join('') +
+  '</select>';
+}
+async function setMasters(email, masters){
+  await fetch('/api/admin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+    body: JSON.stringify({ email, action: 'set_masters', masters }),
+  });
+  load();
+}
+
+async function loadFiles(){
+  const body = document.getElementById('files-body');
+  try {
+    const res = await fetch('/api/files', { headers: { 'x-admin-key': ADMIN_KEY } });
+    if(!res.ok){ body.innerHTML = '<tr><td colspan="7">Indisponible.</td></tr>'; return; }
+    const { files } = await res.json();
+    if(!files.length){ body.innerHTML = '<tr><td colspan="7">Aucun fichier déposé.</td></tr>'; return; }
+    body.innerHTML = files.map(f => '<tr>' +
+      '<td><a class="lnk" href="#" data-open="'+esc(f.id)+'">'+esc(f.titre)+'</a></td>' +
+      '<td>'+esc(f.master)+'</td><td>'+esc(f.matiere||'—')+'</td><td>'+esc(f.categorie)+(f.annee?' '+esc(f.annee):'')+'</td>' +
+      '<td>'+esc(f.uploader||'')+'</td><td>'+fmtDate(f.createdAt)+'</td>' +
+      '<td><button class="act" data-del="'+esc(f.id)+'">Supprimer</button></td></tr>').join('');
+    body.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+      if(!confirm('Supprimer ce fichier pour tout le monde ?')) return;
+      await fetch('/api/files?id='+encodeURIComponent(b.dataset.del), { method: 'DELETE', headers: { 'x-admin-key': ADMIN_KEY } });
+      loadFiles();
+    }));
+    body.querySelectorAll('[data-open]').forEach(a => a.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const res = await fetch('/api/files?id='+encodeURIComponent(a.dataset.open), { headers: { 'x-admin-key': ADMIN_KEY } });
+      if(!res.ok) return;
+      window.open(URL.createObjectURL(await res.blob()), '_blank');
+    }));
+  } catch(e){
+    body.innerHTML = '<tr><td colspan="7">Indisponible.</td></tr>';
+  }
 }
 
 async function toggleBlock(email, action){
@@ -116,13 +173,13 @@ async function toggleBlock(email, action){
 }
 
 document.getElementById('export-csv').addEventListener('click', () => {
-  const rows = [['email','opens','firstSeen','lastSeen','blocked']];
-  RECORDS.forEach(r => rows.push([r.email, r.opens||0, r.firstSeen||'', r.lastSeen||'', r.blocked?'oui':'non']));
+  const rows = [['email','formation','opens','firstSeen','lastSeen','blocked']];
+  RECORDS.forEach(r => rows.push([r.email, mastersOf(r), r.opens||0, r.firstSeen||'', r.lastSeen||'', r.blocked?'oui':'non']));
   const csv = rows.map(row => row.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'm2graf-comptes.csv'; a.click();
+  a.href = url; a.download = 'mastergraf-comptes.csv'; a.click();
   URL.revokeObjectURL(url);
 });
 

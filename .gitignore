@@ -2,3 +2,7 @@ node_modules/
 APP_KEY.txt
 ADMIN_KEY.txt
 .netlify/
+
+# Sources en clair du contenu Master 1 (chiffrées dans tools/m1-sources.enc)
+tools/m1/
+APP_KEY_M1.txt
