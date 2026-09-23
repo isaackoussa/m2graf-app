@@ -51,14 +51,21 @@ exports.handler = async (event) => {
     try { body = JSON.parse(rawBody(event)); }
     catch (e) { return { statusCode: 400, body: 'bad request' }; }
 
-    const { email, action } = body;
-    if (!email || !['block', 'unblock'].includes(action)) {
+    const { email, action, masters } = body;
+    if (!email || !['block', 'unblock', 'set_masters'].includes(action)) {
       return { statusCode: 400, body: JSON.stringify({ error: 'bad_request' }) };
     }
     const key = email.trim().toLowerCase();
     let record = await store.get(key, { type: 'json' });
     if (!record) return { statusCode: 404, body: JSON.stringify({ error: 'not_found' }) };
-    record.blocked = action === 'block';
+    if (action === 'set_masters') {
+      // Formations accessibles au compte : ['M1'], ['M2'] ou ['M1','M2']
+      const list = Array.isArray(masters) ? [...new Set(masters.map(m => String(m).toUpperCase()))].filter(m => m === 'M1' || m === 'M2') : [];
+      if (!list.length) return { statusCode: 400, body: JSON.stringify({ error: 'bad_masters' }) };
+      record.masters = list.sort();
+    } else {
+      record.blocked = action === 'block';
+    }
     await store.set(key, JSON.stringify(record));
     return {
       statusCode: 200,

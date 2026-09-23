@@ -1,14 +1,36 @@
-# M2 GRAF — déploiement sécurisé
+# MasterGraf — déploiement sécurisé (Master 1 + Master 2 GRAF)
 
-Cette version protège le contenu des cours : les fiches, exercices, quiz et le
-dictionnaire sont chiffrés (AES-256-GCM) dans `public/app.enc` et ne sont
-déchiffrés, dans le navigateur, qu'après vérification par un code à 6 chiffres
-envoyé par e-mail. Sans cette vérification, la clé de déchiffrement n'est
-jamais transmise.
+MasterGraf couvre deux formations :
+
+| Formation | Contenu chiffré | Clé (variable Netlify) | Sources |
+|---|---|---|---|
+| Master 2 GRAF (S9–S10, 14 matières) | `public/app.enc` | `APP_KEY` | hors dépôt (build.js d'origine) |
+| Master 1 GRAF (S7–S8, 22 matières) | `public/app-m1.enc` | `APP_KEY_M1` | `tools/m1-sources.enc` (chiffré) |
+
+Les fiches, exercices, quiz et le dictionnaire sont chiffrés (AES-256-GCM) et ne
+sont déchiffrés, dans le navigateur, qu'après vérification par un code à 6
+chiffres envoyé par e-mail. Le serveur ne transmet que la ou les clés des
+formations auxquelles l'étudiant est inscrit.
+
+## Nouveautés
+
+- **Choix de la formation à l'inscription** (Master 1 ou Master 2) : le compte
+  n'a accès qu'à sa formation. Les comptes existants restent en Master 2. Dans
+  la console admin, une colonne « Formation » permet de passer un compte en
+  M1, M2 ou M1 + M2 (un sélecteur apparaît alors dans l'app).
+- **Onglet « Graphiques »** : graphiques interactifs avec curseurs et détail
+  du calcul pas à pas (M1 et M2) — code dans `public/js/visuals.js`.
+- **Code en Python, R, Excel, VBA (et SAS)** pour chaque matière du M1, et
+  Excel/VBA ajoutés aux générateurs du M2 (`public/js/generators-m*.js`).
+- **Annales & fichiers partagés** : les étudiants déposent photos d'examens,
+  PDF, Word, Excel (4 Mo max, photos compressées automatiquement). Visibles
+  par les étudiants de la même formation ; seul l'auteur (ou l'admin) peut
+  supprimer. Fonction `netlify/functions/files.js`, stockage Netlify Blobs.
 
 ## Fichiers sensibles — à NE JAMAIS mettre sur GitHub public
 
-- `APP_KEY.txt` — clé de déchiffrement du contenu (64 caractères hexadécimaux)
+- `APP_KEY.txt` — clé de déchiffrement du contenu M2 (64 caractères hexadécimaux)
+- `APP_KEY_M1.txt` — clé de déchiffrement du contenu M1 (ignorée par git)
 - `ADMIN_KEY.txt` — clé d'accès à la console admin
 
 Garde-les de côté. Si tu perds APP_KEY.txt, il faudra régénérer le contenu
@@ -46,6 +68,8 @@ l'assistant IA de SMC Lab — tu peux réutiliser la même clé).
 3. Dans Netlify → Site settings → Environment variables, ajoute :
    - `APP_KEY` = contenu de APP_KEY.txt (ne PAS cocher "secret", la fonction
      doit pouvoir la lire au runtime)
+   - `APP_KEY_M1` = contenu de APP_KEY_M1.txt (même règle) — sans elle, les
+     comptes Master 1 ne peuvent pas entrer (le Master 2 continue de marcher)
    - `ADMIN_KEY` = contenu de ADMIN_KEY.txt
    - `VERIFY_MODE` = `on`
    - `BREVO_API_KEY` = ta clé API Brevo
@@ -97,7 +121,19 @@ Accessible sur `https://ton-site.netlify.app/admin.html`.
   personnes — tu peux la bloquer d'un clic.
 - Export CSV de la liste complète des comptes.
 
-## Régénérer le contenu après une modification
+## Modifier le contenu du Master 1
+
+Le dépôt étant public, les sources en clair (`tools/m1/`) ne sont jamais
+commitées ; elles sont sauvegardées chiffrées dans `tools/m1-sources.enc`.
+
+    APP_KEY_M1=<clé> node tools/build-m1.js --unpack   # restaure tools/m1/
+    # … modifier tools/m1/s7a.js, s7b.js, s8a.js, s8b.js, glossary.js …
+    APP_KEY_M1=<clé> node tools/build-m1.js            # régénère app-m1.enc + sauvegarde
+
+(ou placer la clé dans `APP_KEY_M1.txt` à la racine au lieu de la variable).
+La clé ne change pas d'un build à l'autre : pas besoin de toucher à Netlify.
+
+## Régénérer le contenu du Master 2 après une modification
 
 Après avoir modifié `content.js`, `quiz.js`, `exercices.js`, `glossary.js`,
 `codes.js` ou `generators.js`, relance :
