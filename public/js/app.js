@@ -50,19 +50,11 @@ function toggleRead(id){
   updateReadButton();
 }
 
-/* ---------------- Icônes (SVG en ligne, trait = couleur du texte) ---------------- */
-const ICON_PATHS = {
-  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
-  lock: '<rect x="5" y="11" width="14" height="10" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
-  quiz: '<rect x="5" y="4" width="14" height="17" rx="1.5"/><path d="M9 4V3h6v1"/><path d="M9 10h6M9 14h6M9 18h3"/>',
-};
-function icon(name){ return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + ICON_PATHS[name] + '</svg>'; }
-
 function updateReadButton(){
   const btn = document.getElementById('mark-read-btn');
   if(!btn) return;
   const isRead = progress[state.matiereId] && progress[state.matiereId].read;
-  btn.innerHTML = isRead ? icon('check') + ' Lu' : 'Marquer comme lu';
+  btn.innerHTML = isRead ? icon('circle-check') + 'Lu' : icon('check') + 'Marquer comme lu';
   btn.classList.toggle('is-read', !!isRead);
 }
 
@@ -170,10 +162,10 @@ function renderHome(){
   const last = DATA.find(m => m.id === lastOpened());
   if(last){
     const i = DATA.indexOf(last);
-    html += '<div class="resume-card" data-id="' + last.id + '"><div class="rc-body"><div class="rc-k">Reprendre</div>' +
+    html += '<div class="resume-card" data-id="' + last.id + '"><div class="rc-icon">' + icon('book-open') + '</div><div class="rc-body"><div class="rc-k">Reprendre là où tu t\'es arrêté</div>' +
       '<div class="rc-t">' + (i+1) + '. ' + esc(last.titre) + '</div>' +
       '<div class="rc-m">' + semLabel(last.semestre) + (progress[last.id] && progress[last.id].read ? ' · lue' : '') + '</div></div>' +
-      '<span class="rc-go">Ouvrir le cours</span></div>';
+      '<span class="rc-go btn-ghost">Continuer ' + icon('arrow-right') + '</span></div>';
   }
 
   html += '<div class="stat-row">' +
@@ -186,7 +178,7 @@ function renderHome(){
   sems.forEach(sem => {
     const list = DATA.filter(m => m.semestre === sem);
     const lus = list.filter(m => progress[m.id] && progress[m.id].read).length;
-    html += '<div class="sem-block"><h3><span>' + semLabel(sem) + '</span><span class="sem-count">' + lus + ' / ' + list.length + ' lues</span></h3>';
+    html += '<div class="sem-block"><h3><span>' + semLabel(sem) + '</span><span class="sem-count">' + lus + ' / ' + list.length + ' lues</span></h3><div class="sem-list">';
     list.forEach(m => {
       const done = progress[m.id] && progress[m.id].read;
       const nv = VIZ(m.id).length;
@@ -196,10 +188,10 @@ function renderHome(){
           (m.fiche && m.fiche.presentation ? '<div class="d">' + esc(m.fiche.presentation.split(/(?<=[.!?])\s/)[0]) + '</div>' : '') +
           '<div class="m">' +
           (m.credits ? m.credits + ' crédits · ' : '') + m.sections.length + ' sections · ' + m.exercices.length + ' exercices · ' + m.quiz.length + ' questions' + (nv ? ' · ' + nv + ' graphique' + (nv > 1 ? 's' : '') : '') +
-        '</div></div>' +
+        '</div></div>' + icon('chevron-right', 'chev') +
       '</div>';
     });
-    html += '</div>';
+    html += '</div></div>';
   });
 
   root.innerHTML = html;
@@ -227,21 +219,27 @@ function renderMatiere(){
   const m = DATA.find(x => x.id === state.matiereId);
   const isRead = progress[m.id] && progress[m.id].read;
   const gen = GENS()[m.id];
-  let html = (m.ue ? '<div class="mat-ue">UE : ' + esc(m.ue) + '</div>' : '') +
+  const nth = DATA.indexOf(m) + 1;
+  const tab = (id, ic, label, cnt) => '<button class="tab-btn' + (state.tab === id ? ' active' : '') + '" data-tab="' + id + '">' + icon(ic) + label + (cnt ? ' <span class="cnt">' + cnt + '</span>' : '') + '</button>';
+  let html = '<nav class="crumbs" aria-label="Fil d\'Ariane"><a data-home>' + esc(MASTER_INFO[currentMaster].label) + '</a>' + icon('chevron-right') +
+      '<span>' + semLabel(m.semestre) + '</span>' + (m.ue ? icon('chevron-right') + '<span>' + esc(m.ue) + '</span>' : '') + '</nav>' +
     '<div class="mat-title-row"><h2>' + esc(m.titre) + '</h2>' +
-      '<button id="mark-read-btn" class="btn-mark' + (isRead?' is-read':'') + '">' + (isRead ? icon('check') + ' Lu' : 'Marquer comme lu') + '</button>' +
+      '<button id="mark-read-btn" class="btn-mark' + (isRead?' is-read':'') + '">' + (isRead ? icon('circle-check') + 'Lu' : icon('check') + 'Marquer comme lu') + '</button>' +
     '</div>' +
-    (m.credits ? '<div class="mat-meta">' + m.credits + ' crédits · ' + semLabel(m.semestre) + '</div>' : '') +
-    '<div class="tabs">' +
-      '<button class="tab-btn' + (state.tab==='cours'?' active':'') + '" data-tab="cours">Cours</button>' +
-      '<button class="tab-btn' + (state.tab==='exercices'?' active':'') + '" data-tab="exercices">Exercices (' + m.exercices.length + (gen ? '+' : '') + ')</button>' +
-      (hasCode(m) || (gen && gen.code) ? '<button class="tab-btn' + (state.tab==='code'?' active':'') + '" data-tab="code">Code</button>' : '') +
-      '<button class="tab-btn' + (state.tab==='quiz'?' active':'') + '" data-tab="quiz">Quiz (' + m.quiz.length + (gen ? '+' : '') + ')</button>' +
+    '<div class="mat-meta"><span>' + icon('layers') + 'Matière ' + nth + ' sur ' + DATA.length + '</span>' +
+      (m.credits ? '<span>' + icon('graduation-cap') + m.credits + ' crédits</span>' : '') +
+      '<span>' + icon('book-open') + m.sections.length + ' sections</span></div>' +
+    '<div class="tabs" role="tablist">' +
+      tab('cours', 'book-open', 'Cours') +
+      tab('exercices', 'pencil-line', 'Exercices', m.exercices.length + (gen ? '+' : '')) +
+      (hasCode(m) || (gen && gen.code) ? tab('code', 'code-xml', 'Code') : '') +
+      tab('quiz', 'list-checks', 'Quiz', m.quiz.length + (gen ? '+' : '')) +
     '</div>' +
     '<div id="tab-content"></div>';
   root.innerHTML = html;
 
   document.getElementById('mark-read-btn').addEventListener('click', () => toggleRead(m.id));
+  root.querySelector('.crumbs [data-home]').addEventListener('click', () => { state = { view: 'home', matiereId: null, tab: 'cours', quiz: null }; setActiveLink(null); renderSidebar(); renderHome(); });
 
   root.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => {
     state.tab = b.dataset.tab; state.quiz = null; renderMatiere();
@@ -274,8 +272,8 @@ function footerNav(m, suffix, tabFor){
     if(nb && next) nb.addEventListener('click', () => openMatiere(next.id, tabFor(next)));
   });
   return '<div class="mat-footer-nav">' +
-    '<button ' + (!prev?'disabled':'') + ' id="nav-prev-' + suffix + '">← ' + (prev ? esc(prev.titre) : '') + '</button>' +
-    '<button ' + (!next?'disabled':'') + ' id="nav-next-' + suffix + '">' + (next ? esc(next.titre) : '') + ' →</button>' +
+    '<button ' + (!prev?'disabled':'') + ' id="nav-prev-' + suffix + '"><small>' + icon('chevron-left') + 'Précédent</small>' + (prev ? esc(prev.titre) : '') + '</button>' +
+    '<button ' + (!next?'disabled':'') + ' id="nav-next-' + suffix + '"><small>Suivant' + icon('chevron-right') + '</small>' + (next ? esc(next.titre) : '') + '</button>' +
   '</div>';
 }
 
@@ -408,7 +406,7 @@ function fmtParam(p, v){
 
 function vizCard(v, i){
   return '<div class="viz-card" id="viz-' + i + '">' +
-    '<div class="viz-kicker">Graphique interactif</div>' +
+    '<div class="viz-kicker">' + icon('chart-line') + 'Graphique interactif</div>' +
     '<h3>' + esc(v.titre) + '</h3><p class="viz-exp">' + esc(v.explication) + '</p>' +
     '<div class="viz-params">' + v.params.map(p =>
       '<div><label for="viz-' + i + '-' + p.id + '"><span>' + esc(p.label) + '</span><b id="viz-' + i + '-' + p.id + '-v"></b></label>' +
@@ -549,7 +547,7 @@ function codeBlock(code, prefix, lang){
       '<button class="code-lang-btn' + (l === lang ? ' active' : '') + '" data-' + prefix + 'lang="' + l + '">' + LANG_LABELS[l] + '</button>').join('') +
     '</div>' +
     langs.map(l => '<div class="code-block" data-' + prefix + 'block="' + l + '" style="display:' + (l === lang ? 'block' : 'none') + ';">' +
-      '<button class="code-copy" data-copy>Copier</button><pre><code>' + esc(code[l]) + '</code></pre></div>').join('');
+      '<button class="code-copy" data-copy>' + icon('copy') + '<span>Copier</span></button><pre><code>' + esc(code[l]) + '</code></pre></div>').join('');
 }
 
 function bindCodeBlock(scope, prefix){
@@ -560,8 +558,9 @@ function bindCodeBlock(scope, prefix){
   }));
   scope.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', async () => {
     const txt = b.parentElement.querySelector('code').textContent;
-    try { await navigator.clipboard.writeText(txt); b.textContent = 'Copié'; } catch(e){ b.textContent = 'Sélectionne et copie'; }
-    setTimeout(() => b.textContent = 'Copier', 1600);
+    const lab = b.querySelector('span');
+    try { await navigator.clipboard.writeText(txt); b.innerHTML = icon('check') + '<span>Copié</span>'; } catch(e){ lab.textContent = 'Sélectionne et copie'; }
+    setTimeout(() => { b.innerHTML = icon('copy') + '<span>Copier</span>'; }, 1600);
   }));
 }
 
@@ -637,7 +636,7 @@ function renderQuizTab(m, tc){
     const best = progress[m.id] && progress[m.id].bestScore !== undefined ? progress[m.id] : null;
     const totalDisponible = m.quiz.length + (gen ? 6 : 0);
     tc.innerHTML = '<div id="quiz-intro">' +
-      '<div class="big-icon">' + icon('quiz') + '</div>' +
+      '<div class="big-icon">' + icon('list-checks') + '</div>' +
       '<p>' + totalDisponible + ' questions (' + (gen ? 'banque + générées aléatoirement, différentes à chaque tentative' : 'banque fixe') + ') pour tester ta compréhension de "' + esc(m.titre) + '".' +
       (best ? '<br>Meilleur score : <strong>' + best.bestScore + '/' + best.total + '</strong>' : '') + '</p>' +
       '<button class="btn-primary" id="start-quiz">Commencer le quiz</button>' +
@@ -673,7 +672,7 @@ function renderQuizTab(m, tc){
   }
 
   const q = qz.order[qz.qi];
-  let h = '<div class="q-progress">Question ' + (qz.qi+1) + ' / ' + qz.order.length + '</div>' +
+  let h = '<div class="q-progress"><span>Question ' + (qz.qi+1) + ' sur ' + qz.order.length + '</span><span>' + qz.score + ' bonne' + (qz.score > 1 ? 's' : '') + ' réponse' + (qz.score > 1 ? 's' : '') + '</span></div>' +
     '<div class="q-track"><div class="q-track-fill" style="width:' + (qz.qi/qz.order.length*100) + '%"></div></div>' +
     '<div class="q-text">' + esc(q.q) + '</div>';
   q.options.forEach((opt, oi) => {
@@ -682,11 +681,11 @@ function renderQuizTab(m, tc){
       if(oi === q.a) cls += ' correct';
       else if(oi === qz.selected) cls += ' wrong';
     }
-    h += '<button class="' + cls + '" data-oi="' + oi + '" ' + (qz.answered?'disabled':'') + '>' + esc(opt) + '</button>';
+    h += '<button class="' + cls + '" data-oi="' + oi + '" ' + (qz.answered?'disabled':'') + '><span class="q-l">' + 'ABCDEFGH'[oi] + '</span><span>' + esc(opt) + '</span></button>';
   });
   if(qz.answered){
     h += '<div class="q-explain">' + esc(q.exp) + '</div>' +
-      '<div class="q-next"><button class="btn-primary" id="next-q">' + (qz.qi+1 < qz.order.length ? 'Question suivante →' : 'Voir le résultat') + '</button></div>';
+      '<div class="q-next"><button class="btn-primary" id="next-q">' + (qz.qi+1 < qz.order.length ? 'Question suivante ' + icon('arrow-right') : 'Voir le résultat') + '</button></div>';
   }
   tc.innerHTML = h;
 
@@ -1027,7 +1026,14 @@ async function openFile(id){
 }
 document.getElementById('viewer-close').addEventListener('click', () => document.getElementById('viewer').classList.remove('show'));
 document.getElementById('viewer').addEventListener('click', (e) => { if(e.target.id === 'viewer') e.currentTarget.classList.remove('show'); });
-document.addEventListener('keydown', (e) => { if(e.key === 'Escape') document.getElementById('viewer').classList.remove('show'); });
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape') document.getElementById('viewer').classList.remove('show');
+  // « / » : aller à la recherche (hors champ de saisie)
+  if(e.key === '/' && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)){
+    const si = document.getElementById('search-input');
+    if(si && si.offsetParent){ e.preventDefault(); si.focus(); }
+  }
+});
 
 async function deleteFile(id){
   if(!confirm('Supprimer ce fichier pour tout le monde ?')) return;

@@ -152,11 +152,16 @@ Accessible sur `https://ton-site.netlify.app/admin.html`.
 - Éditeur et contact indiqués dans les deux pages : Isaac,
   davvpaul36@gmail.com. À modifier dans les deux fichiers si ça change.
 
-## Règles de design
+## Design
 
-Pas d'emojis comme icônes (icônes SVG en ligne, fonction `icon()` dans
-`app.js`), pas de tirets longs dans les textes, pas de boutons en pilule,
-pas de dégradés ni d'animations décoratives.
+- Feuille de style : `public/css/app.css` (jetons en tête de fichier). Couleurs
+  issues de Radix Colors (échelles slate et jade), marque bleu nuit #14213D.
+- Icônes : Lucide (licence ISC), sous-ensemble dans `public/js/icons.js`.
+  `icon('nom')` en JS, `<i data-icon="nom"></i>` dans le HTML.
+- Polices auto-hébergées dans `public/fonts/` (Inter, Source Serif 4,
+  JetBrains Mono ; licence OFL), déclarées dans `public/css/fonts.css`.
+- Règles : pas d'emojis comme icônes, pas de tirets longs, pas de boutons en
+  pilule, pas de dégradés ni d'animations décoratives.
 
 ## Modifier le contenu du Master 1
 
