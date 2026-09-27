@@ -149,8 +149,8 @@ Accessible sur `https://ton-site.netlify.app/admin.html`.
 - `public/confidentialite.html` (politique de confidentialité) et
   `public/cgu.html` (conditions d'utilisation), liées depuis l'écran de
   connexion, le menu et le profil.
-- Avant la mise en ligne, remplacer les deux champs surlignés en jaune
-  (`[nom de l'éditeur]`, `[adresse e-mail de contact]`) dans les deux pages.
+- Éditeur et contact indiqués dans les deux pages : Isaac,
+  davvpaul36@gmail.com. À modifier dans les deux fichiers si ça change.
 
 ## Règles de design
 
