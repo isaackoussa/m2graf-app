@@ -133,13 +133,14 @@ function renderSidebar(){
   DATA.forEach((m, i) => {
     if(m.semestre !== curSem){
       curSem = m.semestre;
-      html += '<div class="sem-label">' + semLabel(curSem) + '</div>';
+      const inSem = DATA.filter(x => x.semestre === curSem);
+      html += '<div class="sem-label"><span>' + semLabel(curSem) + '</span><span>' + inSem.filter(x => progress[x.id] && progress[x.id].read).length + ' / ' + inSem.length + '</span></div>';
     }
     const done = progress[m.id] && progress[m.id].read;
     const active = state.matiereId === m.id;
     html += '<div class="mat-item' + (active?' active':'') + (done?' done':'') + '" data-id="' + m.id + '">' +
       '<span class="dot">' + (done ? icon('check') : '') + '</span>' +
-      '<span class="num">' + (i+1) + '.</span>&nbsp;' + esc(m.titre) +
+      '<span class="num">' + (i+1) + '</span><span>' + esc(m.titre) + '</span>' +
     '</div>';
   });
   listEl.innerHTML = html;
@@ -149,6 +150,8 @@ function renderSidebar(){
 }
 
 /* ---------------- Home ---------------- */
+function lastKey(){ return 'mastergraf_last_' + currentEmail + '_' + currentMaster; }
+function lastOpened(){ try { const v = localStorage.getItem(lastKey()); return v === null ? null : parseInt(v, 10); } catch(e){ return null; } }
 function renderHome(){
   const info = MASTER_INFO[currentMaster];
   const doneCount = DATA.filter(m => progress[m.id] && progress[m.id].read).length;
@@ -160,20 +163,30 @@ function renderHome(){
 
   let html = '<div class="home-hero">' +
     '<div class="kicker">Cahier d\'étude · ' + info.label + '</div>' +
-    '<h2>' + info.label + ' · Gestion des Risques<br>en Assurance et Finance</h2>' +
+    '<h2>' + info.label + ' · Gestion des Risques en Assurance et Finance</h2>' +
     '<p>Les ' + DATA.length + ' matières des ' + sems.map(s => s.replace('S', '')).join(' et ').replace(/^/, 'semestres ') + ', en fiches de cours, graphiques interactifs, exercices corrigés, quiz et codes prêts à l\'emploi (Python, R, Excel, VBA' + (DATA.some(m => m.code && m.code.sas) ? ', SAS' : '') + ').</p>' +
   '</div>';
 
+  const last = DATA.find(m => m.id === lastOpened());
+  if(last){
+    const i = DATA.indexOf(last);
+    html += '<div class="resume-card" data-id="' + last.id + '"><div class="rc-body"><div class="rc-k">Reprendre</div>' +
+      '<div class="rc-t">' + (i+1) + '. ' + esc(last.titre) + '</div>' +
+      '<div class="rc-m">' + semLabel(last.semestre) + (progress[last.id] && progress[last.id].read ? ' · lue' : '') + '</div></div>' +
+      '<span class="rc-go">Ouvrir le cours</span></div>';
+  }
+
   html += '<div class="stat-row">' +
     '<div class="stat-card"><div class="n">' + doneCount + '/' + DATA.length + '</div><div class="l">Matières lues</div></div>' +
-    '<div class="stat-card"><div class="n">' + (avgScore===null ? '-' : avgScore+'%') + '</div><div class="l">Score moyen quiz</div></div>' +
+    '<div class="stat-card"><div class="n">' + (avgScore===null ? '<span class="n-empty">Aucun quiz</span>' : avgScore+' %') + '</div><div class="l">Score moyen quiz</div></div>' +
     '<div class="stat-card"><div class="n">' + totalExercices + '</div><div class="l">Exercices corrigés</div></div>' +
     '<div class="stat-card"><div class="n">' + totalViz + '</div><div class="l">Graphiques interactifs</div></div>' +
   '</div>';
 
   sems.forEach(sem => {
     const list = DATA.filter(m => m.semestre === sem);
-    html += '<div class="sem-block"><h3>' + semLabel(sem) + '</h3>';
+    const lus = list.filter(m => progress[m.id] && progress[m.id].read).length;
+    html += '<div class="sem-block"><h3><span>' + semLabel(sem) + '</span><span class="sem-count">' + lus + ' / ' + list.length + ' lues</span></h3>';
     list.forEach(m => {
       const done = progress[m.id] && progress[m.id].read;
       const nv = VIZ(m.id).length;
@@ -190,7 +203,7 @@ function renderHome(){
   });
 
   root.innerHTML = html;
-  root.querySelectorAll('.home-card').forEach(el => {
+  root.querySelectorAll('.home-card, .resume-card').forEach(el => {
     el.addEventListener('click', () => openMatiere(parseInt(el.dataset.id)));
   });
 }
@@ -200,6 +213,7 @@ function openMatiere(id, tab){
   state.view = 'matiere';
   state.matiereId = id;
   state.tab = tab || 'cours';
+  try { localStorage.setItem(lastKey(), String(id)); } catch(e){}
   state.quiz = null;
   setActiveLink(null);
   renderSidebar();
