@@ -52,10 +52,23 @@ exports.handler = async (event) => {
     catch (e) { return { statusCode: 400, body: 'bad request' }; }
 
     const { email, action, master, masters } = body;
-    if (!email || !['block', 'unblock', 'set_principal', 'set_masters'].includes(action)) {
+    if (!email || !['block', 'unblock', 'set_principal', 'set_masters', 'delete'].includes(action)) {
       return { statusCode: 400, body: JSON.stringify({ error: 'bad_request' }) };
     }
     const key = email.trim().toLowerCase();
+    if (action === 'delete') {
+      // Suppression du compte (droit à l'effacement) : fiche élève, sessions, code en attente, résumés
+      await store.delete(key);
+      await blobStore('m2graf-codes').delete(key);
+      const sessions = blobStore('m2graf-sessions');
+      for (const s of (await sessions.list()).blobs) {
+        const rec = await sessions.get(s.key, { type: 'json' });
+        if (rec && rec.email === key) await sessions.delete(s.key);
+      }
+      const docs = blobStore('m2graf-docs');
+      for (const d of (await docs.list({ prefix: key + ':' })).blobs) await docs.delete(d.key);
+      return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: true }) };
+    }
     let record = await store.get(key, { type: 'json' });
     if (!record) return { statusCode: 404, body: JSON.stringify({ error: 'not_found' }) };
     if (action === 'set_principal') {

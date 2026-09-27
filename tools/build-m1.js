@@ -24,7 +24,7 @@ function loadKey(create) {
   if (!hex && create) {
     hex = crypto.randomBytes(32).toString('hex');
     fs.writeFileSync(KEY_FILE, hex + '\n');
-    console.log('Nouvelle clé créée dans APP_KEY_M1.txt — à copier dans la variable Netlify APP_KEY_M1.');
+    console.log('Nouvelle clé créée dans APP_KEY_M1.txt, à copier dans la variable Netlify APP_KEY_M1.');
   }
   if (!/^[0-9a-f]{64}$/i.test(hex)) throw new Error('Clé APP_KEY_M1 absente ou invalide (64 caractères hexadécimaux attendus).');
   return Buffer.from(hex, 'hex');

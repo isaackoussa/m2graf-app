@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MasterGraf — Admin</title>
+<title>MasterGraf · Admin</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -29,6 +29,8 @@ tr.flag{background:#FBEAE5;}
 tr.blocked{opacity:0.5;}
 button.act{padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:12.5px;}
 button.act:hover{border-color:var(--teal);}
+button.del-acc{padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:12.5px;color:#B3432B;}
+button.del-acc:hover{border-color:#B3432B;}
 #toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
 select.mst{padding:5px 8px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;background:#fff;}
 h2{font-family:'Source Serif 4',serif;color:var(--navy);margin:40px 0 14px;font-size:20px;}
@@ -112,11 +114,12 @@ function render(){
       '<td>'+fmtDate(r.firstSeen)+'</td>' +
       '<td>'+fmtDate(r.lastSeen)+'</td>' +
       '<td>'+(r.blocked ? 'Bloqué' : 'Actif')+'</td>' +
-      '<td><button class="act" data-email="'+esc(r.email)+'" data-action="'+(r.blocked?'unblock':'block')+'">'+(r.blocked?'Débloquer':'Bloquer')+'</button></td>' +
+      '<td><button class="act" data-email="'+esc(r.email)+'" data-action="'+(r.blocked?'unblock':'block')+'">'+(r.blocked?'Débloquer':'Bloquer')+'</button> <button class="del-acc" data-email="'+esc(r.email)+'">Supprimer</button></td>' +
     '</tr>';
   }).join('');
 
   document.querySelectorAll('.act').forEach(b => b.addEventListener('click', () => toggleBlock(b.dataset.email, b.dataset.action)));
+  document.querySelectorAll('.del-acc').forEach(b => b.addEventListener('click', () => deleteAccount(b.dataset.email)));
   document.querySelectorAll('select.mst').forEach(sel => sel.addEventListener('change', () => setMasters(sel.dataset.email, sel.value.split('+'))));
   loadFiles();
 }
@@ -133,6 +136,15 @@ function masterSelect(r){
   return '<select class="mst" data-email="'+esc(r.email)+'">' +
     [['M1','Master 1 uniquement'],['M2','Master 2 uniquement'],['M1+M2','Master 1 + Master 2']].map(([v,l]) => '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+l+'</option>').join('') +
   '</select>';
+}
+async function deleteAccount(email){
+  if(!confirm('Supprimer définitivement le compte ' + email + ' (fiche, sessions et résumés) ? Les fichiers partagés sont conservés.')) return;
+  await fetch('/api/admin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+    body: JSON.stringify({ email, action: 'delete' }),
+  });
+  load();
 }
 async function setMasters(email, masters){
   await fetch('/api/admin', {
@@ -152,7 +164,7 @@ async function loadFiles(){
     if(!files.length){ body.innerHTML = '<tr><td colspan="7">Aucun fichier déposé.</td></tr>'; return; }
     body.innerHTML = files.map(f => '<tr>' +
       '<td><a class="lnk" href="#" data-open="'+esc(f.id)+'">'+esc(f.titre)+'</a></td>' +
-      '<td>'+esc(f.master)+'</td><td>'+esc(f.matiere||'—')+'</td><td>'+esc(f.categorie)+(f.annee?' '+esc(f.annee):'')+'</td>' +
+      '<td>'+esc(f.master)+'</td><td>'+esc(f.matiere||'-')+'</td><td>'+esc(f.categorie)+(f.annee?' '+esc(f.annee):'')+'</td>' +
       '<td>'+esc(f.uploader||'')+'</td><td>'+fmtDate(f.createdAt)+'</td>' +
       '<td><button class="act" data-del="'+esc(f.id)+'">Supprimer</button></td></tr>').join('');
     body.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
@@ -191,7 +203,7 @@ document.getElementById('export-csv').addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
-function fmtDate(iso){ if(!iso) return '—'; const d = new Date(iso); return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}); }
+function fmtDate(iso){ if(!iso) return '-'; const d = new Date(iso); return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}); }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 </script>
 </body>

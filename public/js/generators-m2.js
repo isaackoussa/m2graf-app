@@ -1,4 +1,4 @@
-// Générateurs d'exercices, de quiz et de code — Master 2 (ids alignés sur le contenu M2).
+// Générateurs d'exercices, de quiz et de code : Master 2 (ids alignés sur le contenu M2).
 // Générateurs paramétrés d'exercices et de quiz numériques.
 // Un générateur par matière (index aligné sur content.js), quand la matière s'y prête.
 // Chaque générateur retourne { enonce, etapes:[...], solution, reponseNum } pour l'exercice,
@@ -6,7 +6,7 @@
 // rnd(min,max) et rndf(min,max,dec) sont fournies par l'app (nombres aléatoires reproductibles par tirage).
 
 window.GENERATORS_M2 = {
-  // 0 Séries temporelles — lecture d'un test ADF
+  // 0 Séries temporelles, lecture d'un test ADF
   0: {
     exo(rnd, rndf) {
       const stat = rndf(-3.5, -1.0, 2);
@@ -59,7 +59,7 @@ End Function
     },
   },
 
-  // 1 Statistique des valeurs extrêmes — VaR par GPD
+  // 1 Statistique des valeurs extrêmes : VaR par GPD
   1: {
     exo(rnd, rndf) {
       const u = rnd(50, 150) * 1000;
@@ -113,7 +113,7 @@ End Function
     },
   },
 
-  // 2 Modélisation des actifs financiers — Black-Scholes
+  // 2 Modélisation des actifs financiers : Black-Scholes
   2: {
     exo(rnd, rndf) {
       const S0 = rnd(80, 130);
@@ -167,7 +167,7 @@ End Function
     },
   },
 
-  // 3 Modélisation des risques financiers — VaR paramétrique
+  // 3 Modélisation des risques financiers : VaR paramétrique
   3: {
     exo(rnd, rndf) {
       const valeur = rnd(500, 2000) * 1_000_000;
@@ -220,7 +220,7 @@ End Function
     },
   },
 
-  // 4 Gestion multiple des risques — agrégation
+  // 4 Gestion multiple des risques, agrégation
   4: {
     exo(rnd, rndf) {
       const s1 = rnd(30, 80);
@@ -265,7 +265,7 @@ End Function`,
     },
   },
 
-  // 5 Allocation du capital économique — RAROC
+  // 5 Allocation du capital économique : RAROC
   5: {
     exo(rnd, rndf) {
       const resultat = rnd(8, 25);
@@ -312,7 +312,7 @@ End Function
     },
   },
 
-  // 6 Actuariat vie — prime pure
+  // 6 Actuariat vie, prime pure
   6: {
     exo(rnd, rndf) {
       const Mx = rnd(1000, 1500);
@@ -364,7 +364,7 @@ End Function
     },
   },
 
-  // 7 Actuariat non vie — Chain Ladder
+  // 7 Actuariat non vie : Chain Ladder
   7: {
     exo(rnd, rndf) {
       const f = rndf(1.05, 1.30, 2);
@@ -420,7 +420,7 @@ End Function`,
     },
   },
 
-  // 8 Modèles de prévision — crédibilité
+  // 8 Modèles de prévision, crédibilité
   8: {
     exo(rnd, rndf) {
       const n = rnd(20, 100);
@@ -470,7 +470,7 @@ End Function
     },
   },
 
-  // 9 Théorie du risque — borne de Lundberg
+  // 9 Théorie du risque, borne de Lundberg
   9: {
     exo(rnd, rndf) {
       const R = rndf(0.0002, 0.0008, 4);
@@ -519,7 +519,7 @@ End Function
     },
   },
 
-  // 11 Bâle II — ratio McDonough
+  // 11 Bâle II, ratio McDonough
   11: {
     exo(rnd, rndf) {
       const fp = rnd(30, 60);
@@ -534,7 +534,7 @@ End Function
           `RWA total = ${rwaCredit} + ${rwaMarche} + ${rwaOp} = ${rwaTotal}`,
           `Ratio = ${fp} / ${rwaTotal}`,
         ],
-        solution: `Ratio McDonough = ${(ratio*100).toFixed(1)}% — ${ratio >= 0.08 ? "conforme" : "NON conforme"} (minimum 8%).`,
+        solution: `Ratio McDonough = ${(ratio*100).toFixed(1)}% : ${ratio >= 0.08 ? "conforme" : "NON conforme"} (minimum 8%).`,
       };
     },
     quiz(rnd, rndf) {
@@ -554,8 +554,8 @@ End Function
       const rwaMarche = rnd(15, 40);
       const rwaOp = rnd(10, 30);
       return {
-        python: `fp, rwa_credit, rwa_marche, rwa_op = ${fp}, ${rwaCredit}, ${rwaMarche}, ${rwaOp}\nrwa_total = rwa_credit + rwa_marche + rwa_op\nratio = fp / rwa_total\nprint(f"Ratio McDonough = {ratio:.1%} — conforme: {ratio >= 0.08}")`,
-        r: `fp <- ${fp}; rwa_credit <- ${rwaCredit}; rwa_marche <- ${rwaMarche}; rwa_op <- ${rwaOp}\nrwa_total <- rwa_credit + rwa_marche + rwa_op\nratio <- fp / rwa_total\ncat("Ratio McDonough =", round(ratio*100,1), "% — conforme:", ratio >= 0.08, "\\n")`,
+        python: `fp, rwa_credit, rwa_marche, rwa_op = ${fp}, ${rwaCredit}, ${rwaMarche}, ${rwaOp}\nrwa_total = rwa_credit + rwa_marche + rwa_op\nratio = fp / rwa_total\nprint(f"Ratio McDonough = {ratio:.1%}, conforme: {ratio >= 0.08}")`,
+        r: `fp <- ${fp}; rwa_credit <- ${rwaCredit}; rwa_marche <- ${rwaMarche}; rwa_op <- ${rwaOp}\nrwa_total <- rwa_credit + rwa_marche + rwa_op\nratio <- fp / rwa_total\ncat("Ratio McDonough =", round(ratio*100,1), "%, conforme:", ratio >= 0.08, "\\n")`,
         excel: `' Fonds propres B1 ; RWA crédit B2, marché B3, opérationnel B4
 B1 ${fp}   B2 ${rwaCredit}   B3 ${rwaMarche}   B4 ${rwaOp}
 B5 (ratio)  =B1/SOMME(B2:B4)
@@ -567,7 +567,7 @@ End Function`,
     },
   },
 
-  // 12 Solvabilité II — ratio de solvabilité
+  // 12 Solvabilité II, ratio de solvabilité
   12: {
     exo(rnd, rndf) {
       const fp = rnd(80, 180);
@@ -576,7 +576,7 @@ End Function`,
       return {
         enonce: `Fonds propres éligibles = ${fp} Mds FCFA, SCR = ${scr} Mds FCFA. Calculer le ratio de solvabilité.`,
         etapes: [`Ratio = ${fp} / ${scr}`],
-        solution: `Ratio de solvabilité ≈ ${(ratio*100).toFixed(0)}% — ${ratio >= 1 ? "au-dessus" : "en-dessous"} du seuil réglementaire de 100%.`,
+        solution: `Ratio de solvabilité ≈ ${(ratio*100).toFixed(0)}% : ${ratio >= 1 ? "au-dessus" : "en-dessous"} du seuil réglementaire de 100%.`,
       };
     },
     quiz(rnd, rndf) {

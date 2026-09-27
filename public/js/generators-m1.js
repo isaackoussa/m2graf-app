@@ -1,4 +1,4 @@
-// Générateurs d'exercices, de quiz et de code — Master 1 (ids alignés sur le contenu M1).
+// Générateurs d'exercices, de quiz et de code : Master 1 (ids alignés sur le contenu M1).
 // Chaque générateur : exo(rnd, rndf) → { enonce, etapes, solution } ; quiz → { q, options, a, exp } ;
 // code → { python, r, excel, vba } avec les mêmes valeurs tirées au hasard.
 (function(){
@@ -8,7 +8,7 @@
   const fact = k => { let f = 1; for(let i = 2; i <= k; i++) f *= i; return f; };
 
   window.GENERATORS_M1 = {
-    // 0 Gestion financière — annuité constante et capacité de remboursement
+    // 0 Gestion financière, annuité constante et capacité de remboursement
     0: {
       exo(rnd, rndf){
         const K = rnd(10, 200) * 1e6, i = rndf(0.06, 0.14, 3), n = rnd(3, 10);
@@ -38,7 +38,7 @@
       },
     },
 
-    // 1 Droit des affaires — règle proportionnelle de capitaux
+    // 1 Droit des affaires, règle proportionnelle de capitaux
     1: {
       exo(rnd, rndf){
         const vr = rnd(10, 50) * 10, va = rnd(5, vr / 10) * 10, d = rnd(1, Math.floor(vr / 10)) * 10;
@@ -69,7 +69,7 @@
       },
     },
 
-    // 2 Probabilité — loi de Poisson
+    // 2 Probabilité, loi de Poisson
     2: {
       exo(rnd, rndf){
         const l = rndf(0.05, 0.6, 2), p0 = Math.exp(-l), p1 = l * p0;
@@ -100,7 +100,7 @@
       },
     },
 
-    // 3 Statistique — intervalle de confiance
+    // 3 Statistique, intervalle de confiance
     3: {
       exo(rnd, rndf){
         const n = rnd(40, 400), m = rnd(200, 800) * 1000, s = rnd(80, 300) * 1000, z = 1.96, e = s / Math.sqrt(n);
@@ -130,7 +130,7 @@
       },
     },
 
-    // 4 Économie de l'assurance — prime maximale (utilité √w)
+    // 4 Économie de l'assurance, prime maximale (utilité √w)
     4: {
       exo(rnd, rndf){
         const w = rnd(4, 25), L = rnd(1, w - 1), p = rndf(0.05, 0.3, 2);
@@ -160,7 +160,7 @@
       },
     },
 
-    // 5 Processus stochastiques I — chaîne à deux états
+    // 5 Processus stochastiques I, chaîne à deux états
     5: {
       exo(rnd, rndf){
         const a = rndf(0.05, 0.4, 2), b = rndf(0.2, 0.8, 2), pi0 = b / (a + b);
@@ -189,7 +189,7 @@
       },
     },
 
-    // 6 Mathématiques de la finance — VAN
+    // 6 Mathématiques de la finance : VAN
     6: {
       exo(rnd, rndf){
         const I = rnd(50, 200), F = rnd(15, 60), n = rnd(3, 8), i = rndf(0.06, 0.15, 2);
@@ -219,7 +219,7 @@
       },
     },
 
-    // 7 Modélisation linéaire — test de Student sur un coefficient
+    // 7 Modélisation linéaire, test de Student sur un coefficient
     7: {
       exo(rnd, rndf){
         const b = rndf(-5, 15, 2), se = rndf(0.8, 5, 2), n = rnd(30, 300), t = b / se;
@@ -248,7 +248,7 @@
       },
     },
 
-    // 11 Data mining — matrice de confusion
+    // 11 Data mining, matrice de confusion
     11: {
       exo(rnd, rndf){
         const P = rnd(100, 500), Nn = rnd(3000, 10000), vp = rnd(Math.round(P * 0.5), Math.round(P * 0.95)), fp = rnd(Math.round(Nn * 0.01), Math.round(Nn * 0.1));
@@ -278,7 +278,7 @@
       },
     },
 
-    // 12 Modélisation non linéaire — GLM Poisson log
+    // 12 Modélisation non linéaire : GLM Poisson log
     12: {
       exo(rnd, rndf){
         const b0 = rndf(-3, -1.5, 2), b1 = rndf(0.1, 0.6, 2), b2 = rndf(-0.4, 0.4, 2);
@@ -308,7 +308,7 @@
       },
     },
 
-    // 13 Processus stochastiques II — Poisson composé
+    // 13 Processus stochastiques II : Poisson composé
     13: {
       exo(rnd, rndf){
         const l = rnd(5, 30), T = rnd(1, 6), m = rnd(2, 8) * 100000, s = rnd(1, 6) * 100000;
@@ -338,7 +338,7 @@
       },
     },
 
-    // 14 Stat & proba numériques — inversion
+    // 14 Stat & proba numériques, inversion
     14: {
       exo(rnd, rndf){
         const a = rndf(1.2, 4, 1), xm = rnd(1, 10) * 1000, u = rndf(0.5, 0.99, 2), x = xm * Math.pow(1 - u, -1 / a);
@@ -367,7 +367,7 @@
       },
     },
 
-    // 15 Monte Carlo — précision
+    // 15 Monte Carlo, précision
     15: {
       exo(rnd, rndf){
         const n = rnd(1, 20) * 5000, m = rndf(5, 20, 2), s = rndf(5, 30, 1), h = rndf(0.02, 0.1, 2);
@@ -397,7 +397,7 @@
       },
     },
 
-    // 16 Modèles de durée — exponentielle censurée
+    // 16 Modèles de durée, exponentielle censurée
     16: {
       exo(rnd, rndf){
         const n = rnd(5, 8), T = [], d = [];
@@ -429,7 +429,7 @@
       },
     },
 
-    // 17 Ingénierie financière — parité call-put
+    // 17 Ingénierie financière, parité call-put
     17: {
       exo(rnd, rndf){
         const S = rnd(80, 120), K = rnd(80, 120), r = rndf(0.02, 0.08, 3), T = rnd(1, 3) / 2, C = rndf(3, 20, 2);
@@ -460,7 +460,7 @@
       },
     },
 
-    // 18 Finance quantitative — MEDAF et Black-Scholes
+    // 18 Finance quantitative : MEDAF et Black-Scholes
     18: {
       exo(rnd, rndf){
         const S = rnd(80, 120), K = rnd(80, 120), r = rndf(0.02, 0.08, 3), s = rndf(0.15, 0.4, 2), T = 1;
@@ -491,7 +491,7 @@
       },
     },
 
-    // 19 VBA — fonction de tarification
+    // 19 VBA, fonction de tarification
     19: {
       exo(rnd, rndf){
         const cv = rnd(4, 14), age = rnd(18, 70), zone = Math.random() < 0.5 ? 'Abidjan' : 'Bouaké';
@@ -523,7 +523,7 @@
       },
     },
 
-    // 21 Statistique non paramétrique — Spearman
+    // 21 Statistique non paramétrique : Spearman
     21: {
       exo(rnd, rndf){
         const n = rnd(5, 8), a = [...Array(n).keys()].map(i => i + 1), b = a.slice();

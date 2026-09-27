@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MasterGraf · Confidentialité</title>
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#14213D">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="legal.css">
+</head>
+<body>
+<header><div class="in"><a href="/"><img src="icons/icon.svg" alt="" width="28" height="28">MasterGraf</a></div></header>
+<main>
+<h1>Politique de confidentialité</h1>
+<p class="maj">Dernière mise à jour : 27 septembre 2026</p>
+
+<p>Cette page décrit les données que MasterGraf enregistre, pourquoi, où elles sont stockées et combien de temps elles sont gardées.</p>
+
+<h2>Responsable du traitement</h2>
+<p>MasterGraf est édité par <span class="todo">[nom de l'éditeur]</span>. Pour toute question sur tes données : <span class="todo">[adresse e-mail de contact]</span>.</p>
+
+<h2>Données enregistrées</h2>
+<div class="table-wrap"><table>
+<tr><th>Donnée</th><th>Utilisation</th><th>Durée de conservation</th></tr>
+<tr><td>Adresse e-mail</td><td>Identifier ton compte et t'envoyer le code de connexion.</td><td>Tant que le compte existe.</td></tr>
+<tr><td>Formation choisie (Master 1 ou Master 2)</td><td>Ouvrir l'accès aux cours de ta formation uniquement.</td><td>Tant que le compte existe.</td></tr>
+<tr><td>Date de première et de dernière connexion, nombre de connexions</td><td>Suivi de l'usage par l'administrateur, blocage d'un compte en cas d'abus.</td><td>Tant que le compte existe.</td></tr>
+<tr><td>Code de connexion à 6 chiffres</td><td>Vérifier que l'adresse e-mail t'appartient.</td><td>10 minutes au plus, supprimé dès qu'il est utilisé.</td></tr>
+<tr><td>Jeton de session</td><td>Te garder connecté sans redemander de code.</td><td>90 jours, ou jusqu'à la déconnexion.</td></tr>
+<tr><td>Fichiers partagés (annales, photos d'examen)</td><td>Les mettre à disposition des étudiants de la même formation. Les autres étudiants ne voient pas ton adresse e-mail ; l'administrateur la voit.</td><td>Jusqu'à leur suppression par toi ou par l'administrateur.</td></tr>
+<tr><td>Documents envoyés pour résumé et résumés obtenus</td><td>Produire un résumé de cours. Le texte du document est envoyé à l'API Google Gemini pour générer le résumé. Seuls le nom du fichier et le résumé sont conservés, pas le fichier.</td><td>Tant que le compte existe.</td></tr>
+</table></div>
+
+<p>Ta progression (matières lues, scores aux quiz) et ta session sont enregistrées dans le stockage local de ton navigateur, sur ton appareil. Elles ne sont pas envoyées au serveur.</p>
+<p>MasterGraf n'utilise ni publicité, ni outil de mesure d'audience, ni cookie de suivi.</p>
+
+<h2>Prestataires</h2>
+<ul>
+<li><b>Netlify</b> (États-Unis) : hébergement du site et stockage des données ci-dessus.</li>
+<li><b>Brevo</b> (France) : envoi des e-mails contenant le code de connexion.</li>
+<li><b>Google</b> (États-Unis) : génération des résumés de documents (API Gemini) et polices d'écriture (Google Fonts).</li>
+</ul>
+<p>Certaines données sont donc stockées ou traitées hors de Côte d'Ivoire.</p>
+
+<h2>Tes droits</h2>
+<p>Conformément à la loi ivoirienne n° 2013-450 du 19 juin 2013 relative à la protection des données à caractère personnel, tu peux demander l'accès à tes données, leur rectification ou leur suppression en écrivant à l'adresse de contact ci-dessus. La suppression du compte efface ton adresse e-mail, ta formation, ton historique de connexion, tes résumés et tes sessions. Les fichiers que tu as partagés restent en ligne sauf si tu les supprimes ou demandes leur retrait. Tu peux aussi saisir l'ARTCI (Autorité de Régulation des Télécommunications/TIC de Côte d'Ivoire).</p>
+
+<h2>Sécurité</h2>
+<p>Le contenu des cours est chiffré (AES-256) et n'est déchiffré que dans le navigateur d'un étudiant connecté. Les échanges avec le site passent par HTTPS.</p>
+</main>
+<footer><a href="/">Retour à MasterGraf</a><a href="cgu.html">Conditions d'utilisation</a></footer>
+</body>
+</html>

@@ -1,11 +1,11 @@
-// MasterGraf — application (après déverrouillage : navigation, cours, graphiques, code, quiz, fichiers).
+// MasterGraf, application (après déverrouillage : navigation, cours, graphiques, code, quiz, fichiers).
 let DATA = null;          // matières de la formation affichée
 let GLOSSARY = null;
 let LS_KEY = null;
 let currentEmail = null;
 let currentToken = null;
 let currentMaster = 'M2';
-const CONTENT = {};       // { M1: { items, glossary }, M2: {…} } — contenus déchiffrés
+const CONTENT = {};       // { M1: { items, glossary }, M2: {…} }, contenus déchiffrés
 let AVAILABLE = [];       // formations accessibles au compte
 let PROFILE = null;       // { email, principal, firstSeen, opens }
 
@@ -50,11 +50,19 @@ function toggleRead(id){
   updateReadButton();
 }
 
+/* ---------------- Icônes (SVG en ligne, trait = couleur du texte) ---------------- */
+const ICON_PATHS = {
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  lock: '<rect x="5" y="11" width="14" height="10" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  quiz: '<rect x="5" y="4" width="14" height="17" rx="1.5"/><path d="M9 4V3h6v1"/><path d="M9 10h6M9 14h6M9 18h3"/>',
+};
+function icon(name){ return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + ICON_PATHS[name] + '</svg>'; }
+
 function updateReadButton(){
   const btn = document.getElementById('mark-read-btn');
   if(!btn) return;
   const isRead = progress[state.matiereId] && progress[state.matiereId].read;
-  btn.textContent = isRead ? '✓ Lu' : 'Marquer comme lu';
+  btn.innerHTML = isRead ? icon('check') + ' Lu' : 'Marquer comme lu';
   btn.classList.toggle('is-read', !!isRead);
 }
 
@@ -76,7 +84,7 @@ function setMaster(m){
 
 let ACCOUNT_MASTERS = [];   // formations autorisées pour ce compte (renvoyées par le serveur)
 
-// Deux boutons Master 1 / Master 2 ; celui qui n'est pas autorisé est verrouillé (🔒)
+// Deux boutons Master 1 / Master 2 ; celui qui n'est pas autorisé est verrouillé (cadenas)
 function renderMasterSwitch(){
   const box = document.getElementById('master-switch');
   box.style.display = 'flex';
@@ -84,7 +92,7 @@ function renderMasterSwitch(){
     const ok = !!CONTENT[m];
     return '<button data-m="' + m + '" class="' + (m === currentMaster ? 'active' : '') + (ok ? '' : ' locked') + '"' +
       (ok ? '' : ' aria-disabled="true" title="Réservé aux étudiants de ' + esc(MASTER_INFO[m].label) + '"') + '>' +
-      (ok ? '' : '🔒 ') + esc(MASTER_INFO[m].label) + '</button>';
+      (ok ? '' : icon('lock')) + esc(MASTER_INFO[m].label) + '</button>';
   }).join('');
   box.querySelectorAll('button').forEach(b => b.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -103,7 +111,7 @@ function showLockedNotice(m){
   const mine = esc(ACCOUNT_MASTERS.filter(x => MASTER_INFO[x]).map(x => MASTER_INFO[x].label).join(' + '));
   const cannotLoad = ACCOUNT_MASTERS.includes(m);
   state.view = 'home'; state.matiereId = null; setActiveLink(null); renderSidebar(); closeSidebar();
-  root.innerHTML = '<div class="locked-box"><div class="lk-icon">🔒</div>' +
+  root.innerHTML = '<div class="locked-box"><div class="lk-icon">' + icon('lock') + '</div>' +
     '<h2>' + label + ' verrouillé</h2>' +
     (cannotLoad
       ? '<p>Le contenu du ' + label + ' est momentanément indisponible. Réessaie plus tard.</p>'
@@ -130,7 +138,7 @@ function renderSidebar(){
     const done = progress[m.id] && progress[m.id].read;
     const active = state.matiereId === m.id;
     html += '<div class="mat-item' + (active?' active':'') + (done?' done':'') + '" data-id="' + m.id + '">' +
-      '<span class="dot">' + (done ? '✓' : '') + '</span>' +
+      '<span class="dot">' + (done ? icon('check') : '') + '</span>' +
       '<span class="num">' + (i+1) + '.</span>&nbsp;' + esc(m.titre) +
     '</div>';
   });
@@ -152,13 +160,13 @@ function renderHome(){
 
   let html = '<div class="home-hero">' +
     '<div class="kicker">Cahier d\'étude · ' + info.label + '</div>' +
-    '<h2>' + info.label + ' — Gestion des Risques<br>en Assurance et Finance</h2>' +
+    '<h2>' + info.label + ' · Gestion des Risques<br>en Assurance et Finance</h2>' +
     '<p>Les ' + DATA.length + ' matières des ' + sems.map(s => s.replace('S', '')).join(' et ').replace(/^/, 'semestres ') + ', en fiches de cours, graphiques interactifs, exercices corrigés, quiz et codes prêts à l\'emploi (Python, R, Excel, VBA' + (DATA.some(m => m.code && m.code.sas) ? ', SAS' : '') + ').</p>' +
   '</div>';
 
   html += '<div class="stat-row">' +
     '<div class="stat-card"><div class="n">' + doneCount + '/' + DATA.length + '</div><div class="l">Matières lues</div></div>' +
-    '<div class="stat-card"><div class="n">' + (avgScore===null ? '—' : avgScore+'%') + '</div><div class="l">Score moyen quiz</div></div>' +
+    '<div class="stat-card"><div class="n">' + (avgScore===null ? '-' : avgScore+'%') + '</div><div class="l">Score moyen quiz</div></div>' +
     '<div class="stat-card"><div class="n">' + totalExercices + '</div><div class="l">Exercices corrigés</div></div>' +
     '<div class="stat-card"><div class="n">' + totalViz + '</div><div class="l">Graphiques interactifs</div></div>' +
   '</div>';
@@ -170,7 +178,7 @@ function renderHome(){
       const done = progress[m.id] && progress[m.id].read;
       const nv = VIZ(m.id).length;
       html += '<div class="home-card' + (done?' done':'') + '" data-id="' + m.id + '">' +
-        '<div class="idx">' + (done ? '✓' : (m.id+1)) + '</div>' +
+        '<div class="idx">' + (done ? icon('check') : (m.id+1)) + '</div>' +
         '<div class="body"><div class="t">' + esc(m.titre) + '</div>' +
           (m.fiche && m.fiche.presentation ? '<div class="d">' + esc(m.fiche.presentation.split(/(?<=[.!?])\s/)[0]) + '</div>' : '') +
           '<div class="m">' +
@@ -205,9 +213,9 @@ function renderMatiere(){
   const m = DATA.find(x => x.id === state.matiereId);
   const isRead = progress[m.id] && progress[m.id].read;
   const gen = GENS()[m.id];
-  let html = (m.ue ? '<div class="mat-ue">UE — ' + esc(m.ue) + '</div>' : '') +
+  let html = (m.ue ? '<div class="mat-ue">UE : ' + esc(m.ue) + '</div>' : '') +
     '<div class="mat-title-row"><h2>' + esc(m.titre) + '</h2>' +
-      '<button id="mark-read-btn" class="btn-mark' + (isRead?' is-read':'') + '">' + (isRead ? '✓ Lu' : 'Marquer comme lu') + '</button>' +
+      '<button id="mark-read-btn" class="btn-mark' + (isRead?' is-read':'') + '">' + (isRead ? icon('check') + ' Lu' : 'Marquer comme lu') + '</button>' +
     '</div>' +
     (m.credits ? '<div class="mat-meta">' + m.credits + ' crédits · ' + semLabel(m.semestre) + '</div>' : '') +
     '<div class="tabs">' +
@@ -422,7 +430,7 @@ function bindVizCards(m){
         card.querySelector('.viz-result').textContent = out.resultat || '';
       } catch(err){
         console.error('Visualisation', v.titre, err);
-        card.querySelector('.viz-result').textContent = 'Paramètres hors domaine — ajuste les curseurs.';
+        card.querySelector('.viz-result').textContent = 'Paramètres hors domaine : ajuste les curseurs.';
       }
     };
     let pending = false;
@@ -449,7 +457,7 @@ window.addEventListener('resize', () => {
 function renderExercices(m){
   let h = '';
   if(!m.exercices.length){
-    h += '<p class="exo-intro">Pas d\'exercice fixe pour cette matière — utilise le générateur ci-dessous.</p>';
+    h += '<p class="exo-intro">Pas d\'exercice fixe pour cette matière, utilise le générateur ci-dessous.</p>';
   } else {
     h += '<p class="exo-intro">Cherche à résoudre chaque exercice avant de dérouler les étapes et la solution.</p>';
     m.exercices.forEach((ex, i) => {
@@ -488,7 +496,7 @@ function bindGeneratorExo(m){
   zone.innerHTML =
     '<div class="gen-box">' +
       '<div class="gen-head"><span class="gen-badge">Générateur</span><span class="gen-title">Exercices supplémentaires à volonté</span></div>' +
-      '<p class="gen-desc">Chaque clic génère un nouvel exercice avec des valeurs différentes — entraîne-toi autant que tu veux.</p>' +
+      '<p class="gen-desc">Chaque clic génère un nouvel exercice avec des valeurs différentes, entraîne-toi autant que tu veux.</p>' +
       '<button class="btn-primary" id="gen-new-exo">Générer un exercice</button>' +
       '<div id="gen-exo-content"></div>' +
     '</div>';
@@ -538,7 +546,7 @@ function bindCodeBlock(scope, prefix){
   }));
   scope.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', async () => {
     const txt = b.parentElement.querySelector('code').textContent;
-    try { await navigator.clipboard.writeText(txt); b.textContent = 'Copié ✓'; } catch(e){ b.textContent = 'Sélectionne et copie'; }
+    try { await navigator.clipboard.writeText(txt); b.textContent = 'Copié'; } catch(e){ b.textContent = 'Sélectionne et copie'; }
     setTimeout(() => b.textContent = 'Copier', 1600);
   }));
 }
@@ -546,7 +554,7 @@ function bindCodeBlock(scope, prefix){
 function renderCode(m){
   let h = '';
   if(hasCode(m)){
-    h += '<p class="exo-intro">Extraits de code illustrant les calculs du cours — à adapter à tes propres données. Choisis ton outil :</p>' +
+    h += '<p class="exo-intro">Extraits de code illustrant les calculs du cours, à adapter à tes propres données. Choisis ton outil :</p>' +
       '<div id="main-code">' + codeBlock(m.code, 'm', codeLang) + '</div>';
   }
   h += '<div id="gen-code-zone"></div>';
@@ -615,7 +623,7 @@ function renderQuizTab(m, tc){
     const best = progress[m.id] && progress[m.id].bestScore !== undefined ? progress[m.id] : null;
     const totalDisponible = m.quiz.length + (gen ? 6 : 0);
     tc.innerHTML = '<div id="quiz-intro">' +
-      '<div class="big-icon">📝</div>' +
+      '<div class="big-icon">' + icon('quiz') + '</div>' +
       '<p>' + totalDisponible + ' questions (' + (gen ? 'banque + générées aléatoirement, différentes à chaque tentative' : 'banque fixe') + ') pour tester ta compréhension de "' + esc(m.titre) + '".' +
       (best ? '<br>Meilleur score : <strong>' + best.bestScore + '/' + best.total + '</strong>' : '') + '</p>' +
       '<button class="btn-primary" id="start-quiz">Commencer le quiz</button>' +
@@ -636,7 +644,7 @@ function renderQuizTab(m, tc){
 
     tc.innerHTML = '<div class="quiz-result">' +
       '<div class="score">' + qz.score + '<span>/' + qz.order.length + '</span></div>' +
-      '<div class="msg">' + (pct >= 75 ? 'Bien maîtrisé — continue ainsi.' : pct >= 50 ? 'Correct, quelques notions à revoir.' : 'Relis le cours puis retente le quiz.') + '</div>' +
+      '<div class="msg">' + (pct >= 75 ? 'Bien maîtrisé, continue ainsi.' : pct >= 50 ? 'Correct, quelques notions à revoir.' : 'Relis le cours puis retente le quiz.') + '</div>' +
       '<button class="btn-ghost" id="retry-quiz">Refaire le quiz</button> ' +
       '<button class="btn-primary" id="back-cours">Revoir le cours</button>' +
     '</div>';
@@ -711,7 +719,7 @@ function renderSearch(query){
     '<p>' + hits.length + ' résultat(s)</p></div>';
   hits.slice(0,40).forEach(h => {
     html += '<div class="search-hit" data-id="' + h.m.id + '">' +
-      '<div class="h-ue">' + esc(h.m.titre) + ' — ' + esc(h.sec.titre) + '</div>' +
+      '<div class="h-ue">' + esc(h.m.titre) + ' · ' + esc(h.sec.titre) + '</div>' +
       '<div class="h-snip">' + highlightSnippet(h.snippet, q) + '</div>' +
     '</div>';
   });
@@ -747,7 +755,7 @@ function setActiveLink(id){
   ['profil-link', 'dictionnaire-link', 'documents-link', 'fichiers-link'].forEach(l => document.getElementById(l).classList.toggle('active', l === id));
 }
 
-/* ---------------- Mes documents (résumé IA) ---------------- */
+/* ---------------- Résumés de mes documents ---------------- */
 function mdToHtml(md){
   const lines = (md || '').split('\n');
   let html = '';
@@ -775,7 +783,7 @@ function renderDocuments(){
   let html = '<div class="home-hero">' +
     '<div class="kicker">Assistant de lecture</div>' +
     '<h2>Mes documents</h2>' +
-    '<p>Dépose un PDF ou un Word (.docx) de cours (max 4 Mo) — l\'IA en tire un résumé structuré et les notions clés, adapté au niveau ' + MASTER_INFO[currentMaster].label + ' GRAF. Pour partager une photo d\'examen avec ta promo, utilise plutôt « Annales & fichiers partagés ».</p>' +
+    '<p>Dépose un PDF ou un Word (.docx) de cours (max 4 Mo) : un modèle d\'IA (Google Gemini) en tire un résumé structuré et les notions clés, adapté au niveau ' + MASTER_INFO[currentMaster].label + ' GRAF. Pour partager une photo d\'examen avec ta promo, utilise plutôt « Annales et fichiers partagés ».</p>' +
   '</div>';
 
   html += '<div id="doc-upload-box">' +
@@ -860,7 +868,7 @@ async function submitDocUpload(){
 function showDocSummary(doc){
   const el = document.getElementById('doc-result');
   el.innerHTML = '<div class="doc-summary">' +
-    '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">' + esc(doc.filename) + (doc.matiereTitre ? ' — ' + esc(doc.matiereTitre) : '') + '</div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">' + esc(doc.filename) + (doc.matiereTitre ? ' · ' + esc(doc.matiereTitre) : '') + '</div>' +
     mdToHtml(doc.summary) +
   '</div>';
 }
@@ -876,7 +884,7 @@ async function loadDocHistory(){
     el.innerHTML = docs.map(d =>
       '<div class="doc-history-item" data-id="' + esc(d.id) + '">' +
         '<div class="dh-title">' + esc(d.filename) + '</div>' +
-        '<div class="dh-meta">' + (d.matiereTitre ? esc(d.matiereTitre) + ' — ' : '') + new Date(d.createdAt).toLocaleDateString('fr-FR') + '</div>' +
+        '<div class="dh-meta">' + (d.matiereTitre ? esc(d.matiereTitre) + ' · ' : '') + new Date(d.createdAt).toLocaleDateString('fr-FR') + '</div>' +
       '</div>'
     ).join('');
     el.querySelectorAll('.doc-history-item').forEach(item => {
@@ -898,11 +906,11 @@ const blobCache = {};
 function authHeaders(){ return { 'x-email': currentEmail || '', 'x-token': currentToken || '' }; }
 
 function fileIcon(mime){
-  if(mime.startsWith('image/')) return '🖼️';
-  if(mime === 'application/pdf') return '📕';
-  if(mime.includes('word')) return '📘';
-  if(mime.includes('sheet') || mime === 'text/csv') return '📗';
-  return '📄';
+  if(mime.startsWith('image/')) return 'IMAGE';
+  if(mime === 'application/pdf') return 'PDF';
+  if(mime.includes('word')) return 'WORD';
+  if(mime.includes('sheet') || mime === 'text/csv') return 'TABLEUR';
+  return 'FICHIER';
 }
 function fmtSize(b){ return b > 1048576 ? (b / 1048576).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' Mo' : Math.round(b / 1024) + ' Ko'; }
 
@@ -959,7 +967,7 @@ function renderFileList(){
   const list = FILES.filter(f => (!mat || f.matiere === mat) && (!cat || f.categorie === cat) &&
     (!q || (f.titre + ' ' + (f.matiere || '') + ' ' + f.filename + ' ' + (f.annee || '')).toLowerCase().includes(q)));
   if(!list.length){
-    el.innerHTML = '<p style="color:var(--muted);font-size:13.5px;">' + (FILES.length ? 'Aucun fichier ne correspond aux filtres.' : 'Aucun fichier partagé pour l\'instant — sois le premier à déposer une annale !') + '</p>';
+    el.innerHTML = '<p style="color:var(--muted);font-size:13.5px;">' + (FILES.length ? 'Aucun fichier ne correspond aux filtres.' : 'Aucun fichier partagé pour l\'instant, sois le premier à déposer une annale !') + '</p>';
     return;
   }
   el.innerHTML = '<div class="file-grid">' + list.map(f =>
@@ -1049,7 +1057,7 @@ async function submitFiles(){
       let blob = file, mime = file.type || 'application/octet-stream', name = file.name;
       if(mime.startsWith('image/')){
         const c = await compressImage(file);
-        if(!c){ errors.push(file.name + ' (image illisible — format HEIC ? exporte-la en JPEG)'); continue; }
+        if(!c){ errors.push(file.name + ' (image illisible, format HEIC ? exporte-la en JPEG)'); continue; }
         blob = c; mime = 'image/jpeg'; name = name.replace(/\.[^.]+$/, '') + '.jpg';
       }
       if(!mime || mime === 'application/octet-stream'){
@@ -1115,19 +1123,20 @@ function renderProfil(){
   html += '<div class="profile-card"><span class="avatar">' + esc(initialOf(currentEmail)) + '</span><div class="who">' +
     '<div class="em">' + esc(currentEmail) + '</div>' +
     '<div class="meta">Ma formation : <b>' + MASTER_INFO[principal].label + ' GRAF</b><br>Accès : ' +
-      (access.length > 1 ? 'Master 1 et Master 2' : esc(MASTER_INFO[access[0] || principal].label) + ' uniquement 🔒') +
+      (access.length > 1 ? 'Master 1 et Master 2' : esc(MASTER_INFO[access[0] || principal].label) + ' uniquement') +
       (access.some(x => !CONTENT[x]) ? ' <i>(contenu momentanément indisponible : ' + esc(access.filter(x => !CONTENT[x]).map(x => MASTER_INFO[x].label).join(', ')) + ')</i>' : '') +
       (pr.firstSeen ? '<br>Inscrit depuis le ' + new Date(pr.firstSeen).toLocaleDateString('fr-FR') : '') +
       (pr.opens ? ' · ' + pr.opens + ' connexion' + (pr.opens > 1 ? 's' : '') : '') + '</div>' +
   '</div></div>';
 
   const g = progressOf(principal);
-  html += '<div class="profile-section"><h3>Ma progression — ' + MASTER_INFO[principal].label + '</h3><p class="hint">Matières marquées comme lues et score moyen aux quiz, sur cet appareil.</p>' +
+  html += '<div class="profile-section"><h3>Ma progression, ' + MASTER_INFO[principal].label + '</h3><p class="hint">Matières marquées comme lues et score moyen aux quiz, sur cet appareil.</p>' +
     '<div class="prog-row"><span class="pl">' + MASTER_INFO[principal].label + '</span>' +
       '<span class="pt"><i style="width:' + (g.total ? g.read / g.total * 100 : 0) + '%"></i></span>' +
       '<span class="pv">' + g.read + '/' + g.total + ' lues' + (g.avg !== null ? ' · quiz ' + g.avg + ' %' : '') + '</span></div>' +
   '</div>';
 
+  html += '<div class="profile-section"><h3>Mes données</h3><p class="hint">Ce que MasterGraf enregistre et comment demander la suppression de ton compte : <a href="confidentialite.html">politique de confidentialité</a>. Règles d\'usage : <a href="cgu.html">conditions d\'utilisation</a>.</p></div>';
   html += '<div class="profile-section"><h3>Se déconnecter</h3><p class="hint">Ferme ta session sur cet appareil. Pour revenir, il faudra demander un nouveau code par e-mail. Ta progression reste enregistrée sur cet appareil.</p>' +
     '<button class="btn-danger" id="logout-btn">Se déconnecter</button></div>';
   root.innerHTML = html;
@@ -1297,7 +1306,7 @@ async function sendCode(email, isResend){
     } else {
       pendingEmail = email;
       showCodeStep(email);
-      showGateMsg('Code envoyé — pense à vérifier tes spams si tu ne le vois pas.', '');
+      showGateMsg('Code envoyé. Pense à vérifier tes spams si tu ne le vois pas.', '');
     }
   } catch(err){
     console.error('sendCode error:', err);

@@ -72,7 +72,7 @@ function profileOf(student) {
 const KEY_ENV = { M1: 'APP_KEY_M1', M2: 'APP_KEY' };
 
 // Clés de déchiffrement des formations auxquelles l'étudiant a droit.
-// Retourne { keys, missing } — missing liste les variables d'environnement absentes.
+// Retourne { keys, missing }, missing liste les variables d'environnement absentes.
 function keysFor(masters) {
   const keys = {};
   const missing = [];

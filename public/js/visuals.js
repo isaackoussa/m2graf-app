@@ -1,4 +1,4 @@
-// MasterGraf — graphiques d'explication interactifs, par formation et par matière.
+// MasterGraf, graphiques d'explication interactifs, par formation et par matière.
 // Chaque visualisation : { titre, explication, params: [{ id, label, min, max, step, value, fmt }],
 //   compute(p) → { chart: spec MGChart, calcul: [lignes], resultat } }
 // Les calculs sont refaits à chaque mouvement de curseur et détaillés sous le graphique.
@@ -67,7 +67,7 @@
             series: [{ name: 'ROE', type: 'line', points: pts }, { name: 'Point choisi', type: 'scatter', points: [[p.dcp, roe]], slot: 1 }],
             hlines: [{ y: roa, label: 'ROA' }] },
           calcul: [`ROE = ROA + (ROA − i) × D/CP`, `= ${pct(roa)} + (${pct(roa)} − ${pct(i)}) × ${f2(p.dcp)}`],
-          resultat: `ROE = ${pct(roe)} — levier ${roa > i ? 'positif' : roa < i ? 'négatif (massue)' : 'neutre'}`,
+          resultat: `ROE = ${pct(roe)}, levier ${roa > i ? 'positif' : roa < i ? 'négatif (massue)' : 'neutre'}`,
         };
       },
     },
@@ -93,7 +93,7 @@
     },
     poissonBinom: {
       titre: "Lois de Poisson et binomiale",
-      explication: "La binomiale B(n, p) compte les succès parmi n essais ; quand n est grand et p petit, elle se rapproche d'une Poisson de paramètre λ = np — c'est pourquoi la Poisson modélise le nombre de sinistres.",
+      explication: "La binomiale B(n, p) compte les succès parmi n essais ; quand n est grand et p petit, elle se rapproche d'une Poisson de paramètre λ = np, c'est pourquoi la Poisson modélise le nombre de sinistres.",
       params: [
         { id: 'n', label: 'Nombre d\'essais n', min: 2, max: 200, step: 1, value: 20 },
         { id: 'p', label: 'Probabilité p (%)', min: 1, max: 60, step: 1, value: 10 },
@@ -192,7 +192,7 @@
                      { name: 'E[u(W)]', type: 'scatter', points: [[Ew, Eu]] }],
             vlines: [{ x: EC, label: 'EC' }, { x: Ew, label: 'E[W]' }] },
           calcul: [`E[W] = ${f2(p.w)} − ${f2(q)} × ${f2(L)} = ${f3(Ew)} M`, `E[u] = ${f2(1 - q)}·ln(${p.w}) + ${f2(q)}·ln(${f2(p.w - L)}) = ${f4(Eu)}`, `EC = e^E[u] = ${f3(EC)} M ; prime de risque = ${f3(Ew - EC)} M`],
-          resultat: `Prime maximale = ${f3(p.w - EC)} M FCFA (prime pure ${f3(q * L)} M) — chargement acceptable ${pct((p.w - EC) / (q * L) - 1)}`,
+          resultat: `Prime maximale = ${f3(p.w - EC)} M FCFA (prime pure ${f3(q * L)} M), chargement acceptable ${pct((p.w - EC) / (q * L) - 1)}`,
         };
       },
     },
@@ -323,7 +323,7 @@
           chart: { xlabel: 'Taux de faux positifs (1 − spécificité)', ylabel: 'Sensibilité', xmin: 0, xmax: 1, ymin: 0, ymax: 1, xfmt: v => N.pct(v, 0), yfmt: v => N.pct(v, 0),
             series: [{ name: 'Courbe ROC', type: 'area', points: [[0, 0], ...pts, [1, 1]] }, { name: 'Modèle aléatoire', type: 'line', points: [[0, 0], [1, 1]], dash: true, slot: 2 }, { name: 'Seuil choisi', type: 'scatter', points: [[fpr, tpr]], slot: 1 }] },
           calcul: [`AUC = Φ(d/√2) = Φ(${f3(p.d / Math.SQRT2)}) = ${f3(auc)}`, `Gini = 2·AUC − 1 = ${f3(2 * auc - 1)}`, `Au seuil ${f2(p.s)} : sensibilité ${pct(tpr)}, spécificité ${pct(1 - fpr)}`],
-          resultat: `AUC = ${f3(auc)} — sur 1 000 négatifs et 1 000 positifs : VP = ${f0(tpr * 1000)}, FP = ${f0(fpr * 1000)}`,
+          resultat: `AUC = ${f3(auc)}, sur 1 000 négatifs et 1 000 positifs : VP = ${f0(tpr * 1000)}, FP = ${f0(fpr * 1000)}`,
         };
       },
     },
@@ -457,7 +457,7 @@
             series: [{ name: 'Estimation', type: 'line', points: est }, { name: 'Borne 95 %', type: 'line', points: hi, dash: true, slot: 1 }, { name: 'Borne 95 % ', type: 'line', points: lo, dash: true, slot: 1 }],
             hlines: [{ y: exact, label: 'Black-Scholes ' + f3(exact) }] },
           calcul: [`Payoff actualisé = e^(−rT)·max(S_T − K, 0)`, `n = ${nmax} : estimation ${f4(last)} ± ${f4(half)}`, `Erreur réelle = ${f4(last - exact)}`],
-          resultat: `IC 95 % : [${f3(last - half)} ; ${f3(last + half)}] — prix exact ${f3(exact)}`,
+          resultat: `IC 95 % : [${f3(last - half)} ; ${f3(last + half)}], prix exact ${f3(exact)}`,
         };
       },
     },
@@ -501,7 +501,7 @@
             series: [{ name: 'Weibull S(t)', type: 'line', points: ts.map(t => [t, S(t)]) }, { name: 'Exponentielle de même échelle', type: 'line', points: ts.map(t => [t, Math.exp(-t / p.eta)]), dash: true }],
             vlines: [{ x: p.t, label: 't = ' + f2(p.t) }] },
           calcul: [`S(t) = exp(−(t/η)ᵏ) = exp(−(${f2(p.t)}/${f2(p.eta)})^${f2(p.k)}) = ${f4(S(p.t))}`, `h(t) = (k/η)(t/η)^(k−1) = ${f4(h(p.t))}`, `Durée moyenne = η·Γ(1 + 1/k) = ${f2(mean)}`],
-          resultat: `P(T > ${f2(p.t)}) = ${pct(S(p.t))} — hasard ${p.k > 1.001 ? 'croissant' : p.k < 0.999 ? 'décroissant' : 'constant'}`,
+          resultat: `P(T > ${f2(p.t)}) = ${pct(S(p.t))}, hasard ${p.k > 1.001 ? 'croissant' : p.k < 0.999 ? 'décroissant' : 'constant'}`,
         };
       },
     },
@@ -729,13 +729,13 @@
           chart: { xlabel: 'Nombre d\'exceptions sur 250 jours', ylabel: 'Probabilité', xfmt: v => String(Math.round(v)),
             series: [{ name: `Binomiale(250 ; ${f3(q)})`, type: 'bar', points: ks.map(k => [k, N.binomPmf(k, T, q)]) }], vlines: [{ x, label: 'Observé' }] },
           calcul: [`Attendu : 250 × ${f3(q)} = ${f2(T * q)} exceptions`, `LR_uc = −2 ln[(1−p)^{T−x} pˣ] + 2 ln[(1−x/T)^{T−x} (x/T)ˣ] = ${f3(lr)}`, `Seuil χ²(1) à 5 % = 3,841 ; P(X ≥ ${x}) = ${pct(1 - cum)}`],
-          resultat: (lr > 3.841 ? 'Modèle rejeté (LR > 3,84)' : 'Modèle non rejeté (LR ≤ 3,84)') + (zone ? ` — zone ${zone} du feu tricolore de Bâle` : ''),
+          resultat: (lr > 3.841 ? 'Modèle rejeté (LR > 3,84)' : 'Modèle non rejeté (LR ≤ 3,84)') + (zone ? `, zone ${zone} du feu tricolore de Bâle` : ''),
         };
       },
     },
     copule: {
       titre: "Copule gaussienne ou copule de Clayton ?",
-      explication: "Deux copules de même corrélation de rang (tau de Kendall). La copule de Clayton concentre les points dans le coin inférieur gauche : les pertes extrêmes arrivent ensemble (dépendance de queue), ce que la copule gaussienne ignore — la diversification y est surestimée.",
+      explication: "Deux copules de même corrélation de rang (tau de Kendall). La copule de Clayton concentre les points dans le coin inférieur gauche : les pertes extrêmes arrivent ensemble (dépendance de queue), ce que la copule gaussienne ignore, la diversification y est surestimée.",
       params: [
         { id: 'tau', label: 'Tau de Kendall τ', min: 0.05, max: 0.85, step: 0.05, value: 0.5 },
         { id: 'type', label: 'Copule : 0 = gaussienne, 1 = Clayton', min: 0, max: 1, step: 1, value: 1 },
@@ -778,7 +778,7 @@
     },
     euler: {
       titre: "Allocation du capital : méthode d'Euler",
-      explication: "Deux lignes d'activité aux pertes gaussiennes. Le capital global (VaR 99,5 %) est inférieur à la somme des capitaux isolés ; la méthode d'Euler répartit ce capital diversifié selon la contribution marginale de chaque ligne — la somme des contributions retombe exactement sur le total.",
+      explication: "Deux lignes d'activité aux pertes gaussiennes. Le capital global (VaR 99,5 %) est inférieur à la somme des capitaux isolés ; la méthode d'Euler répartit ce capital diversifié selon la contribution marginale de chaque ligne, la somme des contributions retombe exactement sur le total.",
       params: [
         { id: 's1', label: 'Écart-type ligne 1 (Mds)', min: 5, max: 60, step: 1, value: 30 },
         { id: 's2', label: 'Écart-type ligne 2 (Mds)', min: 5, max: 60, step: 1, value: 20 },
@@ -790,7 +790,7 @@
         return {
           chart: { xlabel: 'Ligne d\'activité', ylabel: 'Capital (Mds FCFA)', xticks: [1, 2], xfmt: v => 'Ligne ' + Math.round(v),
             series: [{ name: 'Capital isolé', type: 'bar', points: [[1, z * p.s1], [2, z * p.s2]] }, { name: 'Contribution d\'Euler', type: 'bar', points: [[1, e1], [2, e2]] }] },
-          calcul: [`Capital global = z·σ_p = 2,576 × ${f2(sp)} = ${f2(z * sp)}`, `Euler ligne 1 = z·σ₁(σ₁ + ρσ₂)/σ_p = ${f2(e1)}`, `Euler ligne 2 = z·σ₂(σ₂ + ρσ₁)/σ_p = ${f2(e2)}`, `Somme = ${f2(e1 + e2)} = capital global ✓`],
+          calcul: [`Capital global = z·σ_p = 2,576 × ${f2(sp)} = ${f2(z * sp)}`, `Euler ligne 1 = z·σ₁(σ₁ + ρσ₂)/σ_p = ${f2(e1)}`, `Euler ligne 2 = z·σ₂(σ₂ + ρσ₁)/σ_p = ${f2(e2)}`, `Somme = ${f2(e1 + e2)} = capital global`],
           resultat: `Bénéfice de diversification : ${f2(z * (p.s1 + p.s2) - z * sp)} Mds (${pct(1 - sp / (p.s1 + p.s2))})`,
         };
       },
