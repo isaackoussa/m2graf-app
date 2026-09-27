@@ -1,4 +1,4 @@
-# MasterGraf — déploiement sécurisé (Master 1 + Master 2 GRAF)
+# MasterGraf, déploiement sécurisé (Master 1 + Master 2 GRAF)
 
 MasterGraf couvre deux formations :
 
@@ -31,7 +31,7 @@ choisie à l'inscription (verrouillage) ; l'admin peut ouvrir l'accès aux deux.
   est supprimé côté serveur).
 - **Formules mathématiques** rendues avec KaTeX (hébergé dans
   `public/vendor/katex`) et **blocs de théorie** (définitions, théorèmes,
-  démonstrations dépliables) dans les cours — pour le M1 dans
+  démonstrations dépliables) dans les cours, pour le M1 dans
   `tools/m1/math.js`.
 - **Graphiques intégrés au cours**, juste après la section qu'ils illustrent.
 - **Master 2 enrichi** : formules LaTeX, 25 blocs de théorie avec
@@ -40,18 +40,18 @@ choisie à l'inscription (verrouillage) ; l'admin peut ouvrir l'accès aux deux.
   matière, 11 nouveaux graphiques (ACF, GEV, GARCH, Kupiec, copules, ALM,
   Euler, temporaire décès, BF vs Chain Ladder, trajectoires de ruine, IRB).
 - Graphiques interactifs avec curseurs et détail du calcul pas à pas (M1 et
-  M2) — code dans `public/js/visuals.js`.
+  M2), code dans `public/js/visuals.js`.
 - **Code en Python, R, Excel, VBA (et SAS)** pour chaque matière du M1, et
   Excel/VBA ajoutés aux générateurs du M2 (`public/js/generators-m*.js`).
 - **Annales & fichiers partagés** : les étudiants déposent photos d'examens,
   PDF, Word, Excel (4 Mo max, photos compressées automatiquement), rangés par
   Master ; seul l'auteur (ou l'admin) peut supprimer. Fonction `netlify/functions/files.js`, stockage Netlify Blobs.
 
-## Fichiers sensibles — à NE JAMAIS mettre sur GitHub public
+## Fichiers sensibles, à NE JAMAIS mettre sur GitHub public
 
-- `APP_KEY.txt` — clé de déchiffrement du contenu M2 (64 caractères hexadécimaux)
-- `APP_KEY_M1.txt` — clé de déchiffrement du contenu M1 (ignorée par git)
-- `ADMIN_KEY.txt` — clé d'accès à la console admin
+- `APP_KEY.txt`, clé de déchiffrement du contenu M2 (64 caractères hexadécimaux)
+- `APP_KEY_M1.txt`, clé de déchiffrement du contenu M1 (ignorée par git)
+- `ADMIN_KEY.txt`, clé d'accès à la console admin
 
 Garde-les de côté. Si tu perds APP_KEY.txt, il faudra régénérer le contenu
 chiffré (relancer `node build.js`) : les anciens `app.enc` déployés ne seront
@@ -60,7 +60,7 @@ plus lisibles avec la nouvelle clé.
 ## Service d'envoi d'e-mail (Brevo)
 
 L'envoi du code à 6 chiffres passe par Brevo (le même service que tu utilises
-déjà pour SMC Lab — tu peux réutiliser le même compte et la même clé API).
+déjà pour SMC Lab, tu peux réutiliser le même compte et la même clé API).
 
 1. Sur app.brevo.com → SMTP & API → API Keys, récupère ta clé API (ou
    crée-en une nouvelle pour ce projet).
@@ -72,7 +72,7 @@ déjà pour SMC Lab — tu peux réutiliser le même compte et la même clé API
 
 La section "Mes documents" (upload de PDF → résumé automatique) utilise
 l'API Gemini de Google (le même service que tu utilises déjà pour
-l'assistant IA de SMC Lab — tu peux réutiliser la même clé).
+l'assistant IA de SMC Lab, tu peux réutiliser la même clé).
 
 1. Sur aistudio.google.com → Get API key, récupère ta clé (ou réutilise
    celle déjà configurée pour SMC Lab).
@@ -82,13 +82,13 @@ l'assistant IA de SMC Lab — tu peux réutiliser la même clé).
 ## Déploiement (GitHub → Netlify, comme tes autres apps)
 
 1. Crée un dépôt GitHub avec tout le contenu de ce dossier (`public/`,
-   `netlify/`, `netlify.toml`, `package.json`) — SAUF les deux fichiers
+   `netlify/`, `netlify.toml`, `package.json`) : SAUF les deux fichiers
    `*_KEY.txt` ci-dessus.
 2. Connecte ce dépôt à un nouveau site Netlify.
 3. Dans Netlify → Site settings → Environment variables, ajoute :
    - `APP_KEY` = contenu de APP_KEY.txt (ne PAS cocher "secret", la fonction
      doit pouvoir la lire au runtime)
-   - `APP_KEY_M1` = contenu de APP_KEY_M1.txt (même règle) — sans elle, seul
+   - `APP_KEY_M1` = contenu de APP_KEY_M1.txt (même règle), sans elle, seul
      le Master 2 s'affiche
    - `ADMIN_KEY` = contenu de ADMIN_KEY.txt
    - `VERIFY_MODE` = `on`
@@ -102,14 +102,14 @@ l'assistant IA de SMC Lab — tu peux réutiliser la même clé).
      settings → Applications → Personal access tokens → New access
      token). Ces deux dernières variables contournent un bug connu où
      Netlify n'injecte pas toujours automatiquement l'accès à Netlify
-     Blobs dans les fonctions — sans elles, send-code/verify-code/resume/
+     Blobs dans les fonctions, sans elles, send-code/verify-code/resume/
      admin/summarize-doc échouent avec "MissingBlobsEnvironmentError".
 4. Déploie. Netlify installera automatiquement `@netlify/blobs` et
    `pdf-parse` via `package.json`, et déploiera les fonctions dans
    `netlify/functions/`.
 
 Tant que ces variables ne sont pas toutes configurées, personne ne peut
-entrer — c'est le comportement voulu, pas une panne.
+entrer, c'est le comportement voulu, pas une panne.
 
 ## Utilisation côté étudiant
 
@@ -126,7 +126,7 @@ entrer — c'est le comportement voulu, pas une panne.
 6. Dans "Mes documents", il peut déposer un PDF (max 4 Mo) et obtenir un
    résumé structuré généré par IA (résumé, notions clés, points à retenir),
    avec un historique de ses documents déjà analysés. Seul le résumé est
-   conservé côté serveur — le PDF original n'est jamais stocké.
+   conservé côté serveur, le PDF original n'est jamais stocké.
 
 ## Console admin
 
@@ -138,8 +138,25 @@ Accessible sur `https://ton-site.netlify.app/admin.html`.
   statut bloqué/actif.
 - Un compte avec un nombre d'ouvertures anormalement élevé (au-delà de 60,
   surligné en rouge) peut signaler une adresse partagée entre plusieurs
-  personnes — tu peux la bloquer d'un clic.
+  personnes, tu peux la bloquer d'un clic.
 - Export CSV de la liste complète des comptes.
+- Bouton « Supprimer » : efface le compte (fiche, sessions, code en attente,
+  résumés de documents). Les fichiers partagés sont conservés. C'est ce que
+  promet la politique de confidentialité pour une demande de suppression.
+
+## Pages légales
+
+- `public/confidentialite.html` (politique de confidentialité) et
+  `public/cgu.html` (conditions d'utilisation), liées depuis l'écran de
+  connexion, le menu et le profil.
+- Éditeur et contact indiqués dans les deux pages : Isaac,
+  davvpaul36@gmail.com. À modifier dans les deux fichiers si ça change.
+
+## Règles de design
+
+Pas d'emojis comme icônes (icônes SVG en ligne, fonction `icon()` dans
+`app.js`), pas de tirets longs dans les textes, pas de boutons en pilule,
+pas de dégradés ni d'animations décoratives.
 
 ## Modifier le contenu du Master 1
 

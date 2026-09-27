@@ -51,7 +51,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'invalid_email' }) };
   }
   email = email.trim().toLowerCase();
-  // Master choisi à l'inscription (M1 ou M2) — utilisé à la vérification pour un nouveau compte
+  // Master choisi à l'inscription (M1 ou M2), utilisé à la vérification pour un nouveau compte
   master = ['M1', 'M2'].includes(String(master || '').toUpperCase()) ? String(master).toUpperCase() : null;
 
   const codesStore = blobStore('m2graf-codes');

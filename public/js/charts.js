@@ -1,4 +1,4 @@
-// MasterGraf — mini-bibliothèque de graphiques SVG (sans dépendance).
+// MasterGraf, mini-bibliothèque de graphiques SVG (sans dépendance).
 // MGChart.render(el, spec) où spec = {
 //   xlabel, ylabel, xmin, xmax, ymin, ymax, xfmt(v), yfmt(v),
 //   series: [{ name, type: 'line'|'area'|'bar'|'scatter'|'step', points: [[x,y],…], dash, slot }],

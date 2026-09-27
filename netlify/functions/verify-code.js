@@ -30,7 +30,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'no_code' }) };
   }
   if (Date.now() > record.expiresAt) {
-    console.log('verify-code: expiré — now=', Date.now(), 'expiresAt=', record.expiresAt);
+    console.log('verify-code: expiré, now=', Date.now(), 'expiresAt=', record.expiresAt);
     await codesStore.delete(email);
     return { statusCode: 400, body: JSON.stringify({ error: 'expired' }) };
   }
@@ -39,7 +39,7 @@ exports.handler = async (event) => {
     return { statusCode: 429, body: JSON.stringify({ error: 'too_many_attempts' }) };
   }
   if (record.code !== code) {
-    console.log('verify-code: code différent — attendu=', record.code, 'reçu=', code);
+    console.log('verify-code: code différent, attendu=', record.code, 'reçu=', code);
     record.attempts = (record.attempts || 0) + 1;
     await codesStore.set(email, JSON.stringify(record));
     return { statusCode: 400, body: JSON.stringify({ error: 'wrong_code' }) };
