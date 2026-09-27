@@ -130,7 +130,7 @@ function renderSidebar(){
     }
     const done = progress[m.id] && progress[m.id].read;
     const active = state.matiereId === m.id;
-    html += '<div class="mat-item' + (active?' active':'') + (done?' done':'') + '" data-id="' + m.id + '">' +
+    html += '<div class="mat-item' + (active?' active':'') + (done?' done':'') + '" role="button" tabindex="0" data-id="' + m.id + '">' +
       '<span class="dot">' + (done ? icon('check') : '') + '</span>' +
       '<span class="num">' + (i+1) + '</span><span>' + esc(m.titre) + '</span>' +
     '</div>';
@@ -162,7 +162,7 @@ function renderHome(){
   const last = DATA.find(m => m.id === lastOpened());
   if(last){
     const i = DATA.indexOf(last);
-    html += '<div class="resume-card" data-id="' + last.id + '"><div class="rc-icon">' + icon('book-open') + '</div><div class="rc-body"><div class="rc-k">Reprendre là où tu t\'es arrêté</div>' +
+    html += '<div class="resume-card" role="button" tabindex="0" data-id="' + last.id + '"><div class="rc-icon">' + icon('book-open') + '</div><div class="rc-body"><div class="rc-k">Reprendre là où tu t\'es arrêté</div>' +
       '<div class="rc-t">' + (i+1) + '. ' + esc(last.titre) + '</div>' +
       '<div class="rc-m">' + semLabel(last.semestre) + (progress[last.id] && progress[last.id].read ? ' · lue' : '') + '</div></div>' +
       '<span class="rc-go btn-ghost">Continuer ' + icon('arrow-right') + '</span></div>';
@@ -182,7 +182,7 @@ function renderHome(){
     list.forEach(m => {
       const done = progress[m.id] && progress[m.id].read;
       const nv = VIZ(m.id).length;
-      html += '<div class="home-card' + (done?' done':'') + '" data-id="' + m.id + '">' +
+      html += '<div class="home-card' + (done?' done':'') + '" role="button" tabindex="0" data-id="' + m.id + '">' +
         '<div class="idx">' + (done ? icon('check') : (m.id+1)) + '</div>' +
         '<div class="body"><div class="t">' + esc(m.titre) + '</div>' +
           (m.fiche && m.fiche.presentation ? '<div class="d">' + esc(m.fiche.presentation.split(/(?<=[.!?])\s/)[0]) + '</div>' : '') +
@@ -1027,6 +1027,9 @@ async function openFile(id){
 document.getElementById('viewer-close').addEventListener('click', () => document.getElementById('viewer').classList.remove('show'));
 document.getElementById('viewer').addEventListener('click', (e) => { if(e.target.id === 'viewer') e.currentTarget.classList.remove('show'); });
 document.addEventListener('keydown', (e) => {
+  // Éléments cliquables non-boutons (role="button") : activables au clavier
+  const t = e.target;
+  if((e.key === 'Enter' || e.key === ' ') && t && t.getAttribute && t.getAttribute('role') === 'button' && t.tagName !== 'BUTTON'){ e.preventDefault(); t.click(); return; }
   if(e.key === 'Escape') document.getElementById('viewer').classList.remove('show');
   // « / » : aller à la recherche (hors champ de saisie)
   if(e.key === '/' && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)){

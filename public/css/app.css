@@ -369,6 +369,7 @@ code.tex{font-family:var(--font-mono);font-size:13px;}
 .viz-params input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:1px solid var(--s8);box-shadow:var(--shadow-sm);cursor:pointer;}
 .viz-params input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;border:1px solid var(--s8);box-shadow:var(--shadow-sm);cursor:pointer;}
 .viz-params input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px var(--a6);}
+.viz-params input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 3px var(--a6);}
 .viz-calc{background:var(--s2);border:1px solid var(--s4);border-radius:var(--r-md);padding:12px 16px;margin-top:12px;}
 .viz-calc h5{margin:0 0 6px;font-size:12.5px;font-weight:600;color:var(--s11);}
 .viz-calc ol{margin:0;padding-left:20px;}
