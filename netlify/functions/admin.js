@@ -51,8 +51,8 @@ exports.handler = async (event) => {
     try { body = JSON.parse(rawBody(event)); }
     catch (e) { return { statusCode: 400, body: 'bad request' }; }
 
-    const { email, action, master } = body;
-    if (!email || !['block', 'unblock', 'set_principal'].includes(action)) {
+    const { email, action, master, masters } = body;
+    if (!email || !['block', 'unblock', 'set_principal', 'set_masters'].includes(action)) {
       return { statusCode: 400, body: JSON.stringify({ error: 'bad_request' }) };
     }
     const key = email.trim().toLowerCase();
@@ -63,6 +63,12 @@ exports.handler = async (event) => {
       const m = String(master || '').toUpperCase();
       if (m !== 'M1' && m !== 'M2') return { statusCode: 400, body: JSON.stringify({ error: 'bad_master' }) };
       record.principal = m;
+    } else if (action === 'set_masters') {
+      // Formations accessibles : ['M1'], ['M2'] ou ['M1','M2'] (verrouillage par défaut sur une seule)
+      const list = Array.isArray(masters) ? [...new Set(masters.map(x => String(x).toUpperCase()))].filter(x => x === 'M1' || x === 'M2') : [];
+      if (!list.length) return { statusCode: 400, body: JSON.stringify({ error: 'bad_masters' }) };
+      record.masters = list.sort();
+      if (!list.includes(record.principal)) record.principal = list[0];
     } else {
       record.blocked = action === 'block';
     }

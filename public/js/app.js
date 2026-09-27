@@ -74,18 +74,44 @@ function setMaster(m){
   renderMasterSwitch();
 }
 
+let ACCOUNT_MASTERS = [];   // formations autorisées pour ce compte (renvoyées par le serveur)
+
+// Deux boutons Master 1 / Master 2 ; celui qui n'est pas autorisé est verrouillé (🔒)
 function renderMasterSwitch(){
   const box = document.getElementById('master-switch');
-  const list = AVAILABLE.filter(m => CONTENT[m]);
-  if(list.length < 2){ box.style.display = 'none'; return; }
   box.style.display = 'flex';
-  box.innerHTML = list.map(m => '<button data-m="' + m + '" class="' + (m === currentMaster ? 'active' : '') + '">' + MASTER_INFO[m].label + '</button>').join('');
+  box.innerHTML = ['M1', 'M2'].map(m => {
+    const ok = !!CONTENT[m];
+    return '<button data-m="' + m + '" class="' + (m === currentMaster ? 'active' : '') + (ok ? '' : ' locked') + '"' +
+      (ok ? '' : ' aria-disabled="true" title="Réservé aux étudiants de ' + esc(MASTER_INFO[m].label) + '"') + '>' +
+      (ok ? '' : '🔒 ') + esc(MASTER_INFO[m].label) + '</button>';
+  }).join('');
   box.querySelectorAll('button').forEach(b => b.addEventListener('click', (e) => {
     e.stopPropagation();
-    setMaster(b.dataset.m);
+    const m = b.dataset.m;
+    if(!CONTENT[m]){ showLockedNotice(m); return; }
+    if(m === currentMaster) return;
+    setMaster(m);
     state = { view: 'home', matiereId: null, tab: 'cours', quiz: null };
     setActiveLink(null); renderSidebar(); renderHome(); closeSidebar();
   }));
+}
+
+function showLockedNotice(m){
+  if(!MASTER_INFO[m]) return;               // seules les formations connues (M1, M2) sont affichées
+  const label = esc(MASTER_INFO[m].label);
+  const mine = esc(ACCOUNT_MASTERS.filter(x => MASTER_INFO[x]).map(x => MASTER_INFO[x].label).join(' + '));
+  const cannotLoad = ACCOUNT_MASTERS.includes(m);
+  state.view = 'home'; state.matiereId = null; setActiveLink(null); renderSidebar(); closeSidebar();
+  root.innerHTML = '<div class="locked-box"><div class="lk-icon">🔒</div>' +
+    '<h2>' + label + ' verrouillé</h2>' +
+    (cannotLoad
+      ? '<p>Le contenu du ' + label + ' est momentanément indisponible. Réessaie plus tard.</p>'
+      : '<p>Ton compte est inscrit en <b>' + mine + '</b> : tu as accès uniquement aux cours de cette formation, choisie à l\'inscription.</p>' +
+        '<p>Si tu suis aussi le ' + label + ', demande à l\'administrateur d\'ouvrir l\'accès à ton compte.</p>') +
+    '<button class="btn-primary" id="locked-back">Retour à mes cours</button></div>';
+  document.getElementById('locked-back').addEventListener('click', () => renderHome());
+  window.scrollTo(0, 0);
 }
 
 /* ---------------- Sidebar ---------------- */
@@ -145,7 +171,9 @@ function renderHome(){
       const nv = VIZ(m.id).length;
       html += '<div class="home-card' + (done?' done':'') + '" data-id="' + m.id + '">' +
         '<div class="idx">' + (done ? '✓' : (m.id+1)) + '</div>' +
-        '<div class="body"><div class="t">' + esc(m.titre) + '</div><div class="m">' +
+        '<div class="body"><div class="t">' + esc(m.titre) + '</div>' +
+          (m.fiche && m.fiche.presentation ? '<div class="d">' + esc(m.fiche.presentation.split(/(?<=[.!?])\s/)[0]) + '</div>' : '') +
+          '<div class="m">' +
           (m.credits ? m.credits + ' crédits · ' : '') + m.sections.length + ' sections · ' + m.exercices.length + ' exercices · ' + m.quiz.length + ' questions' + (nv ? ' · ' + nv + ' graphique' + (nv > 1 ? 's' : '') : '') +
         '</div></div>' +
       '</div>';
@@ -283,8 +311,44 @@ function theorieBlock(t, m){
   '</div>';
 }
 
+// Fiche d'information de la matière : identité, présentation, prérequis, débouchés, conseils, notions, références
+function ficheBlock(m){
+  const f = m.fiche || {};
+  const theoremes = m.sections.reduce((a, s) => a + (s.theorie || []).length, 0);
+  const exemples = m.sections.filter(s => s.exemple).length;
+  const langs = LANG_ORDER.filter(l => m.code && m.code[l]).map(l => LANG_LABELS[l]);
+  const notions = (GLOSSARY || []).filter(g => (g.mats || []).includes(m.id)).map(g => g.terme).sort((a, b) => a.localeCompare(b, 'fr'));
+  const tile = (k, v) => v ? '<div class="fi-tile"><span>' + k + '</span><b>' + v + '</b></div>' : '';
+  const list = (t, arr, cls) => arr && arr.length ? '<div class="fi-sec ' + (cls || '') + '"><h5>' + t + '</h5><ul>' + arr.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>' : '';
+  return '<details class="fiche" open><summary><span class="fi-badge">Fiche de la matière</span><span class="fi-toggle">Masquer / afficher</span></summary>' +
+    '<div class="fi-tiles">' +
+      tile('Formation', MASTER_INFO[currentMaster].label + ' GRAF') +
+      tile('Semestre', semLabel(m.semestre)) +
+      tile('Crédits', m.credits ? m.credits + ' ECTS' : '') +
+      tile('Travail conseillé', esc(f.travail || '')) +
+      tile('Contenu', m.sections.length + ' sections' + (theoremes ? ' · ' + theoremes + ' théorèmes' : '') + (exemples ? ' · ' + exemples + ' exemples' : '')) +
+      tile('Entraînement', m.exercices.length + ' exercices · ' + m.quiz.length + ' questions' + (VIZ(m.id).length ? ' · ' + VIZ(m.id).length + ' graphiques' : '')) +
+      tile('Outils', langs.join(', ')) +
+    '</div>' +
+    (m.ue ? '<p class="fi-ue">Unité d\'enseignement : <b>' + esc(m.ue) + '</b></p>' : '') +
+    (f.presentation ? '<p class="fi-pres">' + esc(f.presentation) + '</p>' : '') +
+    '<div class="fi-grid">' +
+      list('Prérequis', f.prerequis) +
+      list('À quoi ça sert (métiers et usages)', f.applications) +
+      list('Conseils de révision et d\'examen', f.conseils, 'fi-wide') +
+    '</div>' +
+    (notions.length ? '<div class="fi-sec fi-wide"><h5>Notions clés (' + notions.length + ')</h5><div class="fi-chips">' +
+      notions.map(n => '<span class="dict-chip" data-notion="' + esc(n) + '">' + esc(n) + '</span>').join('') + '</div></div>' : '') +
+    list('Pour aller plus loin', f.references, 'fi-wide fi-refs') +
+  '</details>';
+}
+
 function renderCours(m){
-  let h = '';
+  let h = ficheBlock(m);
+  setTimeout(() => document.querySelectorAll('[data-notion]').forEach(c => c.addEventListener('click', () => {
+    state.view = 'dictionnaire'; state.matiereId = null; setActiveLink('dictionnaire-link'); renderSidebar();
+    renderDictionnaire(c.dataset.notion); window.scrollTo(0, 0);
+  })));
   if(m.objectifs && m.objectifs.length){
     h += '<div class="objectifs"><h4>Objectifs pédagogiques</h4><ul>' +
       m.objectifs.map(o => '<li>' + rich(o, m) + '</li>').join('') + '</ul></div>';
@@ -1044,11 +1108,15 @@ function progressOf(m){
 
 function renderProfil(){
   const pr = PROFILE || { email: currentEmail };
-  const principal = pr.principal || currentMaster;
+  const principal = MASTER_INFO[pr.principal] ? pr.principal : currentMaster;
+  // Accès autorisé par le serveur (indépendamment du chargement effectif du contenu)
+  const access = ACCOUNT_MASTERS.filter(x => MASTER_INFO[x]);
   let html = '<div class="home-hero"><div class="kicker">Compte</div><h2>Mon profil</h2></div>';
   html += '<div class="profile-card"><span class="avatar">' + esc(initialOf(currentEmail)) + '</span><div class="who">' +
     '<div class="em">' + esc(currentEmail) + '</div>' +
-    '<div class="meta">Ma formation : <b>' + MASTER_INFO[principal].label + ' GRAF</b>' +
+    '<div class="meta">Ma formation : <b>' + MASTER_INFO[principal].label + ' GRAF</b><br>Accès : ' +
+      (access.length > 1 ? 'Master 1 et Master 2' : esc(MASTER_INFO[access[0] || principal].label) + ' uniquement 🔒') +
+      (access.some(x => !CONTENT[x]) ? ' <i>(contenu momentanément indisponible : ' + esc(access.filter(x => !CONTENT[x]).map(x => MASTER_INFO[x].label).join(', ')) + ')</i>' : '') +
       (pr.firstSeen ? '<br>Inscrit depuis le ' + new Date(pr.firstSeen).toLocaleDateString('fr-FR') : '') +
       (pr.opens ? ' · ' + pr.opens + ' connexion' + (pr.opens > 1 ? 's' : '') : '') + '</div>' +
   '</div></div>';
@@ -1183,7 +1251,8 @@ async function finishUnlock(keys, masters, email, token, preferred, profile){
   PROFILE = profile || { email };
   updateProfileChips();
   if(token){ currentToken = token; try { localStorage.setItem(SESSION_KEY, JSON.stringify({ email, token })); } catch(e){} }
-  AVAILABLE = (masters && masters.length ? masters : Object.keys(keys)).filter(m => keys[m]);
+  ACCOUNT_MASTERS = (masters && masters.length ? masters : Object.keys(keys)).slice();
+  AVAILABLE = ACCOUNT_MASTERS.filter(m => keys[m]);
   const results = await Promise.allSettled(AVAILABLE.map(async m => { CONTENT[m] = await decryptContent(MASTER_INFO[m].enc, keys[m]); }));
   const failed = results.filter(r => r.status === 'rejected');
   AVAILABLE = AVAILABLE.filter(m => CONTENT[m]);
@@ -1197,10 +1266,8 @@ async function finishUnlock(keys, masters, email, token, preferred, profile){
   document.getElementById('app').style.display = 'flex';
   renderSidebar();
   renderHome();
-  if(preferred && !CONTENT[preferred]){
-    root.insertAdjacentHTML('afterbegin', '<div class="viz-result" style="background:#FBEAE5;color:var(--red);margin-bottom:24px;">Le contenu du ' +
-      MASTER_INFO[preferred].label + ' est momentanément indisponible. Réessaie plus tard ou contacte l\'administrateur.</div>');
-  }
+  // Formation demandée à la connexion mais non autorisée (ou indisponible) : explication
+  if(preferred && !CONTENT[preferred]) showLockedNotice(preferred);
 }
 
 function chosenMaster(){

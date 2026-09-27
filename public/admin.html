@@ -56,7 +56,7 @@ a.lnk{color:var(--navy);}
   </div>
   <div class="kpis" id="kpis"></div>
   <table>
-    <thead><tr><th>E-mail</th><th>Formation principale</th><th>Ouvertures</th><th>Première visite</th><th>Dernière visite</th><th>Statut</th><th></th></tr></thead>
+    <thead><tr><th>E-mail</th><th>Accès (formation)</th><th>Ouvertures</th><th>Première visite</th><th>Dernière visite</th><th>Statut</th><th></th></tr></thead>
     <tbody id="tbody"></tbody>
   </table>
 
@@ -117,27 +117,28 @@ function render(){
   }).join('');
 
   document.querySelectorAll('.act').forEach(b => b.addEventListener('click', () => toggleBlock(b.dataset.email, b.dataset.action)));
-  document.querySelectorAll('select.mst').forEach(sel => sel.addEventListener('change', () => setPrincipal(sel.dataset.email, sel.value)));
+  document.querySelectorAll('select.mst').forEach(sel => sel.addEventListener('change', () => setMasters(sel.dataset.email, sel.value.split('+'))));
   loadFiles();
 }
 
-// Chaque compte a accès aux deux Masters ; la formation principale est celle ouverte par défaut.
+// Accès d'un compte : la formation choisie à l'inscription, sauf ouverture M1 + M2 par l'admin.
 // Comptes créés avant l'arrivée du Master 1 : M2.
 function mastersOf(r){
+  if (Array.isArray(r.masters) && r.masters.length) return r.masters.slice().sort().join('+');
   if (r.principal === 'M1' || r.principal === 'M2') return r.principal;
-  return Array.isArray(r.masters) && r.masters[0] === 'M1' ? 'M1' : 'M2';
+  return 'M2';
 }
 function masterSelect(r){
   const cur = mastersOf(r);
   return '<select class="mst" data-email="'+esc(r.email)+'">' +
-    ['M1','M2'].map(v => '<option value="'+v+'"'+(v===cur?' selected':'')+'>Master '+v.slice(1)+'</option>').join('') +
+    [['M1','Master 1 uniquement'],['M2','Master 2 uniquement'],['M1+M2','Master 1 + Master 2']].map(([v,l]) => '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+l+'</option>').join('') +
   '</select>';
 }
-async function setPrincipal(email, master){
+async function setMasters(email, masters){
   await fetch('/api/admin', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
-    body: JSON.stringify({ email, action: 'set_principal', master }),
+    body: JSON.stringify({ email, action: 'set_masters', masters }),
   });
   load();
 }

@@ -40,12 +40,7 @@ function cleanMaster(m) {
   return MASTERS.includes(m) ? m : null;
 }
 
-// App unique : chaque compte a accès aux deux formations (M1 et M2).
-function studentMasters() {
-  return MASTERS.slice();
-}
-
-// Formation principale = celle choisie à l'inscription (ouverte par défaut).
+// Formation principale = celle choisie à l'inscription.
 // Les comptes créés avant l'arrivée du M1 étaient tous en M2.
 function principalMaster(student) {
   if (student && cleanMaster(student.principal)) return cleanMaster(student.principal);
@@ -53,11 +48,22 @@ function principalMaster(student) {
   return 'M2';
 }
 
+// Formations accessibles : uniquement celle choisie à l'inscription,
+// sauf si l'admin a ouvert l'accès aux deux (champ masters).
+function studentMasters(student) {
+  if (student && Array.isArray(student.masters)) {
+    const list = [...new Set(student.masters.map(cleanMaster).filter(Boolean))];
+    if (list.length) return list;
+  }
+  return [principalMaster(student)];
+}
+
 // Informations de profil renvoyées à l'app (jamais le statut de blocage ni d'autres comptes)
 function profileOf(student) {
   return {
     email: student.email,
     principal: principalMaster(student),
+    masters: studentMasters(student),
     firstSeen: student.firstSeen || null,
     opens: student.opens || 0,
   };
