@@ -1,4 +1,4 @@
-const { blobStore, httpMethod, rawBody, studentMasters, profileOf, keysFor } = require('../lib/common');
+const { blobStore, httpMethod, rawBody, studentMasters, principalMaster, profileOf, keysFor } = require('../lib/common');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SESSION_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000; // 90 jours
@@ -49,6 +49,7 @@ exports.handler = async (event) => {
     return { statusCode: 403, body: JSON.stringify({ error: 'blocked' }) };
   }
   const masters = studentMasters(student);
+  if (!Array.isArray(student.masters)) { student.principal = principalMaster(student); student.masters = masters; }
   const { keys, missing } = keysFor(masters);
   if (!Object.keys(keys).length) {
     return { statusCode: 500, body: JSON.stringify({ error: 'config: ' + missing.join(', ') + ' manquant' }) };

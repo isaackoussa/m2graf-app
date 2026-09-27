@@ -54,11 +54,12 @@ exports.handler = async (event) => {
   const now = new Date().toISOString();
   const chosen = cleanMaster(record.master);
   if (!student) {
-    // Inscription : la formation choisie sur l'écran de connexion est enregistrée
-    student = { email, opens: 0, blocked: false, firstSeen: now, lastSeen: now, principal: chosen || 'M2' };
-  } else if (!student.principal) {
-    // Compte antérieur : la formation choisie à cette connexion devient sa formation principale
-    student.principal = chosen || principalMaster(student);
+    // Inscription : la formation choisie devient la seule accessible (verrouillage)
+    student = { email, opens: 0, blocked: false, firstSeen: now, lastSeen: now, principal: chosen || 'M2', masters: [chosen || 'M2'] };
+  } else if (!Array.isArray(student.masters)) {
+    // Compte existant : on fige l'accès sur sa formation d'origine (le choix fait à l'écran ne l'élargit pas)
+    student.principal = principalMaster(student);
+    student.masters = [student.principal];
   }
   if (student.blocked) {
     return { statusCode: 403, body: JSON.stringify({ error: 'blocked' }) };

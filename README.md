@@ -9,15 +9,23 @@ MasterGraf couvre deux formations :
 
 Les fiches, exercices, quiz et le dictionnaire sont chiffrés (AES-256-GCM) et ne
 sont déchiffrés, dans le navigateur, qu'après vérification par un code à 6
-chiffres envoyé par e-mail. Chaque compte reçoit les deux clés : l'app est
-unique et donne accès au Master 1 et au Master 2.
+chiffres envoyé par e-mail. Chaque compte ne reçoit que la clé de la formation
+choisie à l'inscription (verrouillage) ; l'admin peut ouvrir l'accès aux deux.
 
 ## Nouveautés
 
-- **Une seule app pour les deux Masters** : tout compte a accès au M1 et au
-  M2 (boutons « Master 1 / Master 2 » en haut du menu). La formation choisie
-  à l'inscription s'ouvre par défaut ; l'admin peut la changer dans la
-  colonne « Formation principale ». Les comptes existants sont en M2.
+- **Accès verrouillé par formation** : à l'inscription, l'étudiant choisit
+  Master 1 ou Master 2 et n'a accès qu'aux cours de cette formation (le
+  serveur ne lui transmet que la clé correspondante). L'autre Master apparaît
+  avec un cadenas 🔒 ; se reconnecter en choisissant l'autre Master n'élargit
+  pas l'accès. Dans la console admin, la colonne « Accès (formation) » permet
+  de choisir Master 1, Master 2 ou Master 1 + Master 2 pour un compte. Les
+  comptes antérieurs au Master 1 restent en Master 2.
+- **Fiche de chaque matière** en tête du cours : formation, semestre,
+  crédits, charge de travail conseillée, contenu, outils, présentation,
+  prérequis, métiers et usages, conseils de révision et d'examen, notions
+  clés (liées au dictionnaire) et références bibliographiques. Rédigées dans
+  `tools/m1/fiches.js` et `tools/m2/fiches.js`.
 - **Mon profil** : e-mail, formation choisie à l'inscription, progression
   dans cette formation et bouton **Se déconnecter** (le jeton de l'appareil
   est supprimé côté serveur).

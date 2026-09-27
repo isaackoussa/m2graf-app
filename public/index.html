@@ -400,6 +400,11 @@ mark{background:#FDE9B8;padding:0 1px;border-radius:2px;}
   flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.16);color:#D6DCE6;
   padding:7px 0;border-radius:7px;font-size:12.5px;font-weight:600;
 }
+#master-switch button.locked{opacity:.55;border-style:dashed;cursor:not-allowed;}
+.locked-box{text-align:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:36px 24px;max-width:520px;margin:20px auto;}
+.locked-box .lk-icon{font-size:42px;margin-bottom:8px;}
+.locked-box h2{color:var(--navy);margin:0 0 12px;}
+.locked-box p{color:#444;line-height:1.6;}
 #master-switch button.active{background:var(--teal);border-color:var(--teal);color:var(--navy);}
 .side-link{
   margin:2px 24px 10px;padding:10px 12px;border-radius:8px;
@@ -486,6 +491,28 @@ mark{background:#FDE9B8;padding:0 1px;border-radius:2px;}
 #viewer .vbar{display:flex;gap:10px;margin-top:12px;}
 #viewer .vbar a, #viewer .vbar button{background:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13.5px;color:var(--navy);text-decoration:none;font-weight:600;}
 
+/* Fiche de la matière */
+.fiche{background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px 20px 16px;margin-bottom:22px;}
+.fiche summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:10px 0;}
+.fiche summary::-webkit-details-marker{display:none;}
+.fi-badge{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#fff;background:var(--navy);border-radius:5px;padding:3px 10px;}
+.fi-toggle{font-size:12px;color:var(--muted);}
+.fi-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:4px 0 14px;}
+.fi-tile{background:var(--paper);border-radius:8px;padding:9px 12px;}
+.fi-tile span{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;}
+.fi-tile b{font-size:13.5px;color:var(--navy);font-weight:600;line-height:1.35;}
+.fi-ue{font-size:13.5px;color:var(--muted);margin:0 0 8px;}
+.fi-pres{font-size:15px;line-height:1.65;color:#333;margin:0 0 14px;}
+.fi-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 22px;}
+@media(max-width:640px){.fi-grid{grid-template-columns:1fr;}}
+.fi-sec h5{margin:10px 0 6px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--amber);}
+.fi-sec ul{margin:0;padding-left:18px;}
+.fi-sec li{font-size:14px;line-height:1.55;margin-bottom:4px;color:#333;}
+.fi-wide{grid-column:1/-1;}
+.fi-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.fi-refs li{font-style:italic;color:#555;}
+.home-card .d{font-size:12.5px;color:#555;margin-top:2px;line-height:1.4;}
+
 /* Logo */
 .gate-logo{display:block;margin:0 auto 14px;width:112px;height:112px;}
 .brand{display:flex;align-items:center;gap:10px;}
@@ -533,7 +560,7 @@ mark{background:#FDE9B8;padding:0 1px;border-radius:2px;}
     <h1>MasterGraf</h1>
 
     <div id="gate-step-email">
-      <p class="gate-sub">Choisis ta formation et entre ton adresse e-mail pour recevoir un code de connexion.</p>
+      <p class="gate-sub">Choisis ta formation et entre ton adresse e-mail pour recevoir un code de connexion. <b>Attention :</b> ton compte n'aura accès qu'aux cours de la formation choisie.</p>
       <form id="gate-form-email">
         <p class="gate-label">Ma formation</p>
         <div class="master-pick" role="radiogroup" aria-label="Formation">
