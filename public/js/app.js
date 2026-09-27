@@ -83,8 +83,8 @@ function renderMasterSwitch(){
   box.innerHTML = ['M1', 'M2'].map(m => {
     const ok = !!CONTENT[m];
     return '<button data-m="' + m + '" class="' + (m === currentMaster ? 'active' : '') + (ok ? '' : ' locked') + '"' +
-      (ok ? '' : ' aria-disabled="true" title="Réservé aux étudiants de ' + MASTER_INFO[m].label + '"') + '>' +
-      (ok ? '' : '🔒 ') + MASTER_INFO[m].label + '</button>';
+      (ok ? '' : ' aria-disabled="true" title="Réservé aux étudiants de ' + esc(MASTER_INFO[m].label) + '"') + '>' +
+      (ok ? '' : '🔒 ') + esc(MASTER_INFO[m].label) + '</button>';
   }).join('');
   box.querySelectorAll('button').forEach(b => b.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -98,15 +98,17 @@ function renderMasterSwitch(){
 }
 
 function showLockedNotice(m){
-  const mine = AVAILABLE.map(x => MASTER_INFO[x].label).join(' + ');
+  if(!MASTER_INFO[m]) return;               // seules les formations connues (M1, M2) sont affichées
+  const label = esc(MASTER_INFO[m].label);
+  const mine = esc(ACCOUNT_MASTERS.filter(x => MASTER_INFO[x]).map(x => MASTER_INFO[x].label).join(' + '));
   const cannotLoad = ACCOUNT_MASTERS.includes(m);
   state.view = 'home'; state.matiereId = null; setActiveLink(null); renderSidebar(); closeSidebar();
   root.innerHTML = '<div class="locked-box"><div class="lk-icon">🔒</div>' +
-    '<h2>' + MASTER_INFO[m].label + ' verrouillé</h2>' +
+    '<h2>' + label + ' verrouillé</h2>' +
     (cannotLoad
-      ? '<p>Le contenu du ' + MASTER_INFO[m].label + ' est momentanément indisponible. Réessaie plus tard.</p>'
+      ? '<p>Le contenu du ' + label + ' est momentanément indisponible. Réessaie plus tard.</p>'
       : '<p>Ton compte est inscrit en <b>' + mine + '</b> : tu as accès uniquement aux cours de cette formation, choisie à l\'inscription.</p>' +
-        '<p>Si tu suis aussi le ' + MASTER_INFO[m].label + ', demande à l\'administrateur d\'ouvrir l\'accès à ton compte.</p>') +
+        '<p>Si tu suis aussi le ' + label + ', demande à l\'administrateur d\'ouvrir l\'accès à ton compte.</p>') +
     '<button class="btn-primary" id="locked-back">Retour à mes cours</button></div>';
   document.getElementById('locked-back').addEventListener('click', () => renderHome());
   window.scrollTo(0, 0);
@@ -1106,12 +1108,15 @@ function progressOf(m){
 
 function renderProfil(){
   const pr = PROFILE || { email: currentEmail };
-  const principal = pr.principal || currentMaster;
+  const principal = MASTER_INFO[pr.principal] ? pr.principal : currentMaster;
+  // Accès autorisé par le serveur (indépendamment du chargement effectif du contenu)
+  const access = ACCOUNT_MASTERS.filter(x => MASTER_INFO[x]);
   let html = '<div class="home-hero"><div class="kicker">Compte</div><h2>Mon profil</h2></div>';
   html += '<div class="profile-card"><span class="avatar">' + esc(initialOf(currentEmail)) + '</span><div class="who">' +
     '<div class="em">' + esc(currentEmail) + '</div>' +
     '<div class="meta">Ma formation : <b>' + MASTER_INFO[principal].label + ' GRAF</b><br>Accès : ' +
-      (AVAILABLE.length > 1 ? 'Master 1 et Master 2' : MASTER_INFO[AVAILABLE[0]].label + ' uniquement 🔒') +
+      (access.length > 1 ? 'Master 1 et Master 2' : esc(MASTER_INFO[access[0] || principal].label) + ' uniquement 🔒') +
+      (access.some(x => !CONTENT[x]) ? ' <i>(contenu momentanément indisponible : ' + esc(access.filter(x => !CONTENT[x]).map(x => MASTER_INFO[x].label).join(', ')) + ')</i>' : '') +
       (pr.firstSeen ? '<br>Inscrit depuis le ' + new Date(pr.firstSeen).toLocaleDateString('fr-FR') : '') +
       (pr.opens ? ' · ' + pr.opens + ' connexion' + (pr.opens > 1 ? 's' : '') : '') + '</div>' +
   '</div></div>';
