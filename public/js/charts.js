@@ -134,9 +134,19 @@
     });
 
     // Repères
-    (spec.vlines || []).forEach(v => {
-      el('line', { x1: X(v.x), x2: X(v.x), y1: m.t, y2: m.t + ph, class: 'mg-ref' }, svg);
-      if(v.label) el('text', { x: Math.min(X(v.x) + 4, W - m.r - 4), y: m.t + 12, class: 'mg-reflabel', 'text-anchor': X(v.x) > W - 120 ? 'end' : 'start' }, svg).textContent = v.label;
+    // Étiquettes décalées d'une ligne quand deux repères sont trop proches
+    const rows = [];
+    (spec.vlines || []).slice().sort((a, b) => a.x - b.x).forEach(v => {
+      const xv = X(v.x);
+      el('line', { x1: xv, x2: xv, y1: m.t, y2: m.t + ph, class: 'mg-ref' }, svg);
+      if(!v.label) return;
+      const w = String(v.label).length * 6.5 + 8;
+      const end = xv > W - m.r - w;
+      const x0 = end ? xv - 4 - w : xv + 4, x1 = x0 + w;
+      let r = 0;
+      while(rows[r] !== undefined && rows[r] > x0) r++;
+      rows[r] = x1;
+      el('text', { x: end ? xv - 4 : xv + 4, y: m.t + 12 + r * 14, class: 'mg-reflabel', 'text-anchor': end ? 'end' : 'start' }, svg).textContent = v.label;
     });
     (spec.hlines || []).forEach(h => {
       el('line', { x1: m.l, x2: W - m.r, y1: Y(h.y), y2: Y(h.y), class: 'mg-ref' }, svg);

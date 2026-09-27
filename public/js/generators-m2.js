@@ -188,7 +188,7 @@ End Function
       const attendu = rndf(0.5, 2, 1);
       const observe = rnd(Math.ceil(attendu*3), Math.ceil(attendu*3)+8);
       return {
-        q: `Sur 250 jours à 99% de confiance, on attend environ ${(2.5).toFixed(1)} dépassements. On en observe ${observe}. Que conclure ?`,
+        q: `Sur 250 jours à 99% de confiance, on attend environ 2,5 dépassements. On en observe ${observe}. Que conclure ?`,
         options: [
           "Le modèle sous-estime probablement le risque (trop de dépassements)",
           "Le modèle est parfaitement calibré",
@@ -197,8 +197,8 @@ End Function
         ],
         a: observe > 4 ? 0 : 1,
         exp: observe > 4
-          ? `${observe} dépassements observés contre ${(2.5).toFixed(1)} attendus : écart important, à confirmer par un test de Kupiec.`
-          : `${observe} dépassements est proche de l'attendu (${(2.5).toFixed(1)}) : pas d'alerte évidente.`,
+          ? `${observe} dépassements observés contre 2,5 attendus : écart important, à confirmer par un test de Kupiec.`
+          : `${observe} dépassements est proche de l'attendu (2,5) : pas d'alerte évidente.`,
       };
     },
     code(rnd, rndf) {
