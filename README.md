@@ -160,6 +160,11 @@ Accessible sur `https://ton-site.netlify.app/admin.html`.
   `icon('nom')` en JS, `<i data-icon="nom"></i>` dans le HTML.
 - Polices auto-hébergées dans `public/fonts/` (Inter, Source Serif 4,
   JetBrains Mono ; licence OFL), déclarées dans `public/css/fonts.css`.
+- Motion design : bibliothèque Motion (motion.dev, MIT) dans
+  `public/vendor/motion/`, piloté par `public/js/motion-ui.js` (arrivée des
+  écrans, curseurs glissants des onglets et sélecteurs, retour sur les
+  réponses du quiz). Mouvements de 150 à 300 ms, désactivés si l'appareil
+  demande de réduire les animations.
 - Règles : pas d'emojis comme icônes, pas de tirets longs, pas de boutons en
   pilule, pas de dégradés ni d'animations décoratives.
 
