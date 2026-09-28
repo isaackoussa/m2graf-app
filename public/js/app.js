@@ -48,6 +48,8 @@ function toggleRead(id){
   progress[id] = p; saveProgress(progress);
   renderSidebar();
   updateReadButton();
+  const rb = document.getElementById('mark-read-btn');
+  if(window.UI && rb) UI.pop(rb.querySelector('.ic'));
 }
 
 function updateReadButton(){
@@ -95,6 +97,7 @@ function renderMasterSwitch(){
     state = { view: 'home', matiereId: null, tab: 'cours', quiz: null };
     setActiveLink(null); renderSidebar(); renderHome(); closeSidebar();
   }));
+  if(window.UI) UI.segmented(box);
 }
 
 function showLockedNotice(m){
@@ -555,11 +558,13 @@ function bindCodeBlock(scope, prefix){
     codeLang = b.getAttribute('data-' + prefix + 'lang');
     scope.querySelectorAll('[data-' + prefix + 'lang]').forEach(x => x.classList.toggle('active', x === b));
     scope.querySelectorAll('[data-' + prefix + 'block]').forEach(x => x.style.display = x.getAttribute('data-' + prefix + 'block') === codeLang ? 'block' : 'none');
+    if(window.UI) UI.codeSwitch(b.parentElement);
   }));
+  if(window.UI) requestAnimationFrame(() => scope.querySelectorAll('.code-switch').forEach(sw => UI.codeSwitch(sw)));
   scope.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', async () => {
     const txt = b.parentElement.querySelector('code').textContent;
     const lab = b.querySelector('span');
-    try { await navigator.clipboard.writeText(txt); b.innerHTML = icon('check') + '<span>Copié</span>'; } catch(e){ lab.textContent = 'Sélectionne et copie'; }
+    try { await navigator.clipboard.writeText(txt); b.innerHTML = icon('check') + '<span>Copié</span>'; if(window.UI) UI.pop(b.querySelector('.ic')); } catch(e){ lab.textContent = 'Sélectionne et copie'; }
     setTimeout(() => { b.innerHTML = icon('copy') + '<span>Copier</span>'; }, 1600);
   }));
 }
@@ -661,6 +666,7 @@ function renderQuizTab(m, tc){
       '<button class="btn-ghost" id="retry-quiz">Refaire le quiz</button> ' +
       '<button class="btn-primary" id="back-cours">Revoir le cours</button>' +
     '</div>';
+    if(window.UI) UI.quizQuestion(tc);
     document.getElementById('retry-quiz').addEventListener('click', () => {
       state.quiz = { qi: 0, score: 0, answered: false, selected: null, order: buildQuizPool(m) };
       renderQuizTab(m, tc);
@@ -688,6 +694,7 @@ function renderQuizTab(m, tc){
       '<div class="q-next"><button class="btn-primary" id="next-q">' + (qz.qi+1 < qz.order.length ? 'Question suivante ' + icon('arrow-right') : 'Voir le résultat') + '</button></div>';
   }
   tc.innerHTML = h;
+  if(window.UI) (qz.answered ? UI.quizAnswer(tc) : UI.quizQuestion(tc));
 
   if(!qz.answered){
     tc.querySelectorAll('.q-opt').forEach(b => b.addEventListener('click', () => {
@@ -1265,11 +1272,13 @@ function showGateMsg(text, kind){
 function showEmailStep(){
   document.getElementById('gate-step-email').style.display = 'block';
   document.getElementById('gate-step-code').style.display = 'none';
+  if(window.UI) UI.step(document.getElementById('gate-step-email'));
 }
 function showCodeStep(email){
   document.getElementById('gate-email-display').textContent = email;
   document.getElementById('gate-step-email').style.display = 'none';
   document.getElementById('gate-step-code').style.display = 'block';
+  if(window.UI) UI.step(document.getElementById('gate-step-code'));
   document.getElementById('gate-code').value = '';
   document.getElementById('gate-code').focus();
 }
